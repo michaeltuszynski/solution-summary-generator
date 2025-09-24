@@ -29,7 +29,11 @@ export interface Proposal {
     overview: ProposalSection;
     solution_approach: ProposalSection;
     outcomes: ProposalSection;
-    next_steps: ProposalSection;
+    next_steps?: ProposalSection;
+    problem_statement?: ProposalSection;
+    assumptions?: ProposalSection;
+    client_responsibilities?: ProposalSection;
+    [key: string]: ProposalSection | undefined;
   };
   overallConfidence: number;
 }
@@ -87,4 +91,17 @@ export interface GenerationStatus {
   progress: number;
   currentStep: string;
   error?: string;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  industries: string[];
+  projectTypes: string[];
+}
+
+export interface TemplatesResponse {
+  success: boolean;
+  templates: Template[];
 }

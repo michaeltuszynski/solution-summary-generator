@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { DiscoveryData, IndustryType, ProjectType, DurationRange, BudgetRange, FormErrors } from '../types';
+import { DiscoveryData, IndustryType, ProjectType, DurationRange, BudgetRange, FormErrors, Template } from '../types';
+import ProposalApi from '../services/api';
 
 interface DiscoveryFormProps {
-  onSubmit: (data: DiscoveryData) => void;
+  onSubmit: (data: DiscoveryData, templateId?: string) => void;
 }
 
 const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
@@ -19,6 +20,33 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  // Fetch templates on component mount
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      setLoadingTemplates(true);
+      try {
+        const response = await ProposalApi.getTemplates();
+        if (response.success && response.templates) {
+          setTemplates(response.templates);
+          // Auto-select default template if available
+          const defaultTemplate = response.templates.find(t => t.id === 'default');
+          if (defaultTemplate) {
+            setSelectedTemplateId(defaultTemplate.id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load templates:', error);
+        // Continue without templates - backend will use default
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+    fetchTemplates();
+  }, []);
 
   const industries: IndustryType[] = [
     'Manufacturing',
@@ -105,7 +133,7 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
       // Simulate brief validation delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      onSubmit(formData as DiscoveryData);
+      onSubmit(formData as DiscoveryData, selectedTemplateId || undefined);
     } catch (error) {
       console.error('Form submission error:', error);
     } finally {
@@ -255,6 +283,27 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
           onChange={(e) => handleChange('successCriteria', e.target.value)}
         />
       </div>
+
+      {/* Template Selection */}
+      {templates.length > 0 && (
+        <div className="space-y-2">
+          <label htmlFor="template-select" className="text-sm font-medium">
+            Proposal Template
+          </label>
+          <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+            <SelectTrigger id="template-select" name="template">
+              <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select Template"} />
+            </SelectTrigger>
+            <SelectContent>
+              {templates.map(template => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.name} - {template.description}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Submit Button */}
       <div className="flex justify-center pt-4">

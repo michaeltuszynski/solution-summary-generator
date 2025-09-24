@@ -10,6 +10,7 @@ import { ProposalApi } from '../services/api';
 
 const ProposalGenerator: React.FC = () => {
   const [discoveryData, setDiscoveryData] = useState<DiscoveryData | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
   const [uploadedFiles, setUploadedFiles] = useState<FileUploadType[]>([]);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatusType>({
     isGenerating: false,
@@ -20,8 +21,9 @@ const ProposalGenerator: React.FC = () => {
   const [downloadUrl, setDownloadUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  const handleDiscoverySubmit = (data: DiscoveryData) => {
+  const handleDiscoverySubmit = (data: DiscoveryData, templateId?: string) => {
     setDiscoveryData(data);
+    setSelectedTemplateId(templateId);
     setError('');
   };
 
@@ -63,8 +65,8 @@ const ProposalGenerator: React.FC = () => {
         currentStep: 'Generating proposal sections...'
       }));
 
-      // Call API
-      const response = await ProposalApi.generateProposal(discoveryData, files);
+      // Call API with templateId
+      const response = await ProposalApi.generateProposal(discoveryData, files, selectedTemplateId);
 
       if (response.success && response.proposal) {
         setGenerationStatus(prev => ({
