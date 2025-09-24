@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Proposal, ProposalSection } from '../types';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 
 interface ProposalResultProps {
   proposal: Proposal;
