@@ -1,96 +1,13 @@
-import axios, { AxiosInstance } from 'axios';
-import { DiscoveryData, Proposal, ProposalSection, SectionType, ClaudeRequest, ClaudeResponse } from '../types';
+import { DiscoveryData, Proposal, ProposalSection, SectionType } from '../types';
+import { BedrockService } from './bedrockService';
 
 export class ProposalService {
-  private claudeClient: AxiosInstance;
-  private bestModel: string = 'claude-3-sonnet-20240229'; // fallback
+  private bedrockService: BedrockService;
 
   constructor() {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is required');
-    }
-
-    this.claudeClient = axios.create({
-      baseURL: 'https://api.anthropic.com/v1',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      timeout: 120000 // 2 minutes timeout
-    });
-
-    // Initialize best model on startup
-    this.initializeBestModel();
+    this.bedrockService = new BedrockService();
   }
 
-  private async initializeBestModel(): Promise<void> {
-    try {
-      // Anthropic doesn't provide a public models endpoint, so we'll test known models
-      // by making a small test request to see which ones are available
-      const knownModels = [
-        'claude-sonnet-4-20250514',    // Latest Claude Sonnet 4 (most capable)
-        'claude-3-5-sonnet-20241022',  // Latest Claude 3.5 Sonnet
-        'claude-3-5-sonnet-20240620',  // Previous Claude 3.5 Sonnet
-        'claude-3-sonnet-20240229',    // Claude 3 Sonnet
-        'claude-3-haiku-20240307'      // Claude 3 Haiku (fallback)
-      ];
-
-      // Test models in priority order
-      for (const modelId of knownModels) {
-        if (await this.testModel(modelId)) {
-          this.bestModel = modelId;
-          console.log(`✅ Using available Claude model: ${this.bestModel}`);
-          return;
-        }
-      }
-
-      console.warn('⚠️ No preferred models available, using fallback:', this.bestModel);
-    } catch (error) {
-      console.warn('⚠️ Failed to initialize model, using fallback:', this.bestModel);
-    }
-  }
-
-  private async testModel(modelId: string): Promise<boolean> {
-    try {
-      console.log(`🔍 Testing model availability: ${modelId}`);
-      
-      // Make a minimal test request to see if the model is available
-      const testRequest = {
-        model: modelId,
-        max_tokens: 10,
-        temperature: 0.1,
-        messages: [{ role: 'user', content: 'Hi' }]
-      };
-
-      await this.claudeClient.post('/messages', testRequest);
-      console.log(`✅ Model ${modelId} is available`);
-      return true;
-    } catch (error: any) {
-      console.log(`❌ Model ${modelId} test failed:`, {
-        status: error.response?.status,
-        error: error.response?.data?.error?.type,
-        message: error.response?.data?.error?.message || error.message
-      });
-      
-      // If we get a 404 or model not found error, this model isn't available
-      if (error.response?.status === 404 || error.response?.data?.error?.type === 'not_found_error') {
-        return false;
-      }
-      // For other errors (rate limits, etc.), assume the model exists but log the issue
-      if (error.response?.status === 429) {
-        console.warn(`⚠️ Rate limited testing ${modelId}, assuming available`);
-        return true;
-      }
-      // For auth errors, this is a bigger problem
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.error(`🚫 Authentication error testing ${modelId}:`, error.response?.data);
-        return false;
-      }
-      return true;
-    }
-  }
 
   async generateProposal(discoveryData: DiscoveryData, documentContext: string = ''): Promise<Proposal> {
     const sections: SectionType[] = ['overview', 'solution_approach', 'outcomes', 'next_steps'];
@@ -144,21 +61,16 @@ export class ProposalService {
     const prompt = this.buildPrompt(sectionType, discoveryData, documentContext);
 
     try {
-      const claudeRequest: ClaudeRequest = {
-        model: this.bestModel,
-        max_tokens: 2000,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      };
+      const messages = [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
 
-      const response = await this.claudeClient.post<ClaudeResponse>('/messages', claudeRequest);
-      const content = response.data.content[0]?.text || 'No content generated';
-      
+      const response = await this.bedrockService.invokeModel(messages, 2000, 0.7);
+      const content = response.content[0]?.text || 'No content generated';
+
       const confidence = this.calculateConfidence(content, sectionType);
       const warnings = this.checkRAPCompliance(content);
 
@@ -169,19 +81,12 @@ export class ProposalService {
         generatedAt: new Date()
       };
     } catch (error: any) {
-      console.error('Claude API error:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
+      console.error('Bedrock API error:', {
         message: error.message,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          model: this.bestModel
-        }
+        sectionType: sectionType
       });
-      
-      const errorMessage = error.response?.data?.error?.message || error.message || 'Unknown API error';
+
+      const errorMessage = error.message || 'Unknown API error';
       throw new Error(`Failed to generate ${sectionType}: ${errorMessage}`);
     }
   }
@@ -387,12 +292,11 @@ Write SHORT, punchy bullet points for the Next Steps slide content ONLY (no head
 
   // Public method to refresh model selection if needed
   async refreshBestModel(): Promise<string> {
-    await this.initializeBestModel();
-    return this.bestModel;
+    return await this.bedrockService.refreshBestModel();
   }
 
   // Get current model being used
   getCurrentModel(): string {
-    return this.bestModel;
+    return this.bedrockService.getCurrentModel();
   }
 }

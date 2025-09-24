@@ -163,9 +163,20 @@ app.listen(PORT, () => {
   console.log(`💾 Generated files: ${generatedDir}`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   
-  // Validate required environment variables
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn('⚠️  ANTHROPIC_API_KEY not set - proposal generation will fail');
+  // Validate AWS configuration
+  if (!process.env.AWS_REGION) {
+    console.warn('⚠️  AWS_REGION not set - using default region: us-east-1');
+  }
+
+  // Check for AWS credentials (they can come from multiple sources)
+  const hasEnvCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+  const hasProfileCredentials = process.env.AWS_PROFILE || process.env.AWS_SDK_LOAD_CONFIG;
+
+  if (!hasEnvCredentials && !hasProfileCredentials) {
+    console.log('📌 AWS credentials not found in environment variables');
+    console.log('   AWS SDK will attempt to use IAM role or AWS CLI configuration');
+  } else {
+    console.log('✅ AWS credentials configured');
   }
 });
 
