@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { DiscoveryData, GenerationResponse } from '../types';
+import { DiscoveryData, GenerationResponse, TemplatesResponse } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -56,12 +56,18 @@ export class ProposalApi {
    */
   static async generateProposal(
     discoveryData: DiscoveryData,
-    documents?: File[]
+    documents?: File[],
+    templateId?: string
   ): Promise<GenerationResponse> {
     const formData = new FormData();
-    
+
     // Add discovery data as JSON string
     formData.append('discoveryData', JSON.stringify(discoveryData));
+
+    // Add template ID if provided
+    if (templateId) {
+      formData.append('templateId', templateId);
+    }
     
     // Add documents if provided
     if (documents && documents.length > 0) {
@@ -141,6 +147,18 @@ export class ProposalApi {
     }
   }
   
+  /**
+   * Get available templates
+   */
+  static async getTemplates(): Promise<TemplatesResponse> {
+    try {
+      const response = await apiClient.get('/templates');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to fetch templates');
+    }
+  }
+
   /**
    * Health check
    */

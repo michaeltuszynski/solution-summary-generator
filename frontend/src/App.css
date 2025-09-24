@@ -36,10 +36,8 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Smooth transitions */
-* {
-  transition: all 0.2s ease-in-out;
-}
+/* Removed global transition to prevent UI shaking */
+/* Transitions should be applied to specific elements only */
 
 /* Focus styles for accessibility */
 .focus\:ring-2:focus {

@@ -16,9 +16,11 @@ export class ProposalController {
   async generateProposal(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const discoveryData: DiscoveryData = req.body.discoveryData;
+      const templateId: string | undefined = req.body.templateId;
       const files = req.files as Express.Multer.File[] | undefined;
 
       console.log('Generating proposal for:', discoveryData.companyName);
+      console.log('Using template:', templateId || 'default');
       console.log('Files uploaded:', files?.length || 0);
 
       // Process uploaded documents for context
@@ -34,8 +36,8 @@ export class ProposalController {
         }
       }
 
-      // Generate proposal content
-      const proposal = await this.proposalService.generateProposal(discoveryData, documentContext);
+      // Generate proposal content with optional templateId
+      const proposal = await this.proposalService.generateProposal(discoveryData, documentContext, templateId);
 
       // Generate PPTX presentation
       const pptxPath = await this.pptxService.createPresentation(proposal, discoveryData);
@@ -113,13 +115,35 @@ export class ProposalController {
   async getProposalStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const proposalId = req.params.id;
-      
+
       // For now, return a simple status - this would be enhanced with real status tracking
       res.json({
         success: true,
         status: 'completed',
         proposalId,
         message: 'Proposal generation completed'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getTemplates(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const templates = this.proposalService.getAvailableTemplates();
+
+      // Map to frontend-friendly format
+      const formattedTemplates = templates.map(template => ({
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        industries: template.industries,
+        projectTypes: template.projectTypes
+      }));
+
+      res.json({
+        success: true,
+        templates: formattedTemplates
       });
     } catch (error) {
       next(error);

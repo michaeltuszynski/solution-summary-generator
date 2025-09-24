@@ -49,7 +49,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       fontSize: '14px',
       fontWeight: '600',
       fontFamily: 'var(--font-heading)',
-      transition: 'all 0.2s ease',
+      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
       cursor: 'pointer',
       border: 'none',
       outline: 'none',

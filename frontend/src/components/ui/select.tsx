@@ -30,6 +30,7 @@ const SelectTrigger = React.forwardRef<
       fontSize: '14px',
       cursor: 'pointer',
       outline: 'none',
+      transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
       ...props.style
     }}
     {...props}
@@ -97,6 +98,8 @@ const SelectContent = React.forwardRef<
         color: 'var(--primary-black)',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         animation: 'none',
+        transition: 'none',
+        transform: 'none',
         ...props.style
       }}
       sideOffset={4}
@@ -141,6 +144,7 @@ const SelectItem = React.forwardRef<
       fontSize: '14px',
       outline: 'none',
       margin: '2px',
+      transition: 'background-color 0.15s ease, color 0.15s ease',
       ...props.style
     }}
     {...props}

@@ -7,11 +7,21 @@ import { Proposal, DiscoveryData } from '../types';
 export class PPTXService {
   private outputPath: string;
   private templatePath: string;
+  private templateFile: string;
 
-  constructor() {
+  constructor(templatePath?: string) {
     this.outputPath = path.join(__dirname, '..', '..', 'generated');
-    this.templatePath = path.join(__dirname, '..', '..', 'templates');
-    
+
+    // Use provided template path or default to legacy location
+    if (templatePath) {
+      this.templateFile = templatePath;
+      this.templatePath = path.dirname(templatePath);
+    } else {
+      // Legacy fallback
+      this.templatePath = path.join(__dirname, '..', '..', 'templates');
+      this.templateFile = path.join(this.templatePath, 'Solution Summary Template.pptx');
+    }
+
     // Ensure directories exist
     if (!fs.existsSync(this.outputPath)) {
       fs.mkdirSync(this.outputPath, { recursive: true });
@@ -22,8 +32,9 @@ export class PPTXService {
     try {
       console.log('🔧 Starting template-based PPTX generation with preserved styling...');
       
-      const templateFile = path.join(this.templatePath, 'Solution Summary Template.pptx');
-      
+      // Use the configured template file
+      const templateFile = this.templateFile;
+
       // Check if template exists
       if (!fs.existsSync(templateFile)) {
         throw new Error(`Template file not found: ${templateFile}`);
@@ -121,8 +132,8 @@ export class PPTXService {
       SOLUTION_WARNINGS: this.formatWarnings(proposal.sections.solution_approach?.warnings),
       OUTCOMES_WARNINGS: this.formatWarnings(proposal.sections.outcomes?.warnings),
       
-      // Next steps - Claude-generated client-specific content
-      NEXT_STEPS: this.formatContentForTemplate(proposal.sections.next_steps?.content || 'Content not available'),
+      // Next steps
+      NEXT_STEPS: this.getNextStepsContent(),
       
       // Additional context
       INDUSTRY: discoveryData.industry || 'Technology',
@@ -159,259 +170,58 @@ export class PPTXService {
       formatted = formatted.replace(pattern, '');
     });
 
-    // Process bullets intelligently - split long ones, preserve meaning
-    const processedBullets = this.intelligentBulletProcessing(formatted);
-    
-    return processedBullets.join('\n\n');
-  }
-
-  private intelligentBulletProcessing(content: string): string[] {
-    // Claude content is already in bullet format, just clean it up
-    let bullets = content
+    // Ensure proper bullet formatting
+    formatted = formatted
       .split('\n')
       .map(line => line.trim())
-      .filter(line => line.length > 5)
+      .filter(line => line.length > 0)
       .map(line => {
-        // Remove bullet characters if present
-        return line.replace(/^[-•*]\s*/, '').trim();
+        // If line doesn't start with bullet, add one
+        if (line && !line.startsWith('•') && !line.startsWith('-') && !line.startsWith('*')) {
+          return '• ' + line;
+        }
+        // Convert other bullet types to consistent bullet
+        return line.replace(/^[-*]\s/, '• ');
       })
-      .filter(line => line.length > 0);
+      .join('\n\n');
 
-    // If no bullets found, try splitting by periods for paragraph content
-    if (bullets.length === 0 || bullets.length === 1) {
-      bullets = content
-        .split(/[.!?]+/)
-        .map(s => s.trim())
-        .filter(s => s.length > 10)
-        .slice(0, 5);
-    }
-
-    const processedBullets: string[] = [];
-    const maxBulletLength = 150; // Longer for complete thoughts
-    const maxTotalBullets = 6;   // Allow more bullets
-
-    for (const bullet of bullets) {
-      if (processedBullets.length >= maxTotalBullets) break;
-      
-      let bulletText = bullet.trim();
-      
-      if (bulletText.length <= maxBulletLength) {
-        // Bullet is good as-is - add bullet character
-        processedBullets.push(`• ${bulletText}`);
-      } else {
-        // Split long bullet intelligently
-        const splitBullets = this.intelligentBulletSplit(bulletText);
-        splitBullets.forEach(splitBullet => {
-          if (processedBullets.length < maxTotalBullets) {
-            processedBullets.push(`• ${splitBullet}`);
-          }
-        });
-      }
-    }
-
-    return processedBullets.slice(0, maxTotalBullets);
-  }
-
-  private intelligentBulletSplit(text: string): string[] {
-    const maxLength = 80;
-    
-    if (text.length <= maxLength) {
-      return [text];
-    }
-
-    // Strategy 1: Split on natural conjunctions and connectors
-    const conjunctionPatterns = [
-      /,\s+(and|while|with|including|through|via|by|using|ensuring)\s+/i,
-      /\s+(and|while|with|including|through|via|by|using|ensuring)\s+/i,
-      /;\s+/,
-      /\s+–\s+/, // em dash
-      /\s+-\s+/, // hyphen with spaces
-    ];
-
-    for (const pattern of conjunctionPatterns) {
-      const parts = text.split(pattern);
-      if (parts.length > 1) {
-        const splitResults: string[] = [];
-        let currentPart = '';
-        
-        for (let i = 0; i < parts.length; i++) {
-          const part = parts[i]?.trim() || '';
-          const connector = i > 0 ? this.extractConnector(text, pattern) : '';
-          
-          if (currentPart && (currentPart + ' ' + connector + ' ' + part).length > maxLength) {
-            // Current part is getting too long, save it and start new one
-            splitResults.push(currentPart.trim());
-            currentPart = part;
-          } else if (currentPart) {
-            // Add to current part with appropriate connector
-            currentPart += ' ' + connector + ' ' + part;
-          } else {
-            currentPart = part;
-          }
-        }
-        
-        if (currentPart) {
-          splitResults.push(currentPart.trim());
-        }
-        
-        // If we successfully split into meaningful parts, return them
-        if (splitResults.length > 1 && splitResults.every(part => part.length <= maxLength + 10)) {
-          return splitResults;
-        }
-      }
-    }
-
-    // Strategy 2: Split on sentence boundaries
-    const sentences = text.split(/\.\s+/).filter(s => s.length > 0);
-    if (sentences.length > 1) {
-      const result: string[] = [];
-      let currentGroup = '';
-      
-      for (const sentence of sentences) {
-        const sentenceWithPeriod = sentence.endsWith('.') ? sentence : sentence + '.';
-        
-        if (currentGroup && (currentGroup + ' ' + sentenceWithPeriod).length > maxLength) {
-          result.push(currentGroup.trim());
-          currentGroup = sentenceWithPeriod;
-        } else {
-          currentGroup = currentGroup ? currentGroup + ' ' + sentenceWithPeriod : sentenceWithPeriod;
-        }
-      }
-      
-      if (currentGroup) {
-        result.push(currentGroup.trim());
-      }
-      
-      if (result.length > 1) {
-        return result;
-      }
-    }
-
-    // Strategy 3: Split on parenthetical information
-    const parenMatch = text.match(/^(.*?)\s*\((.*?)\)(.*)$/);
-    if (parenMatch) {
-      const [, before, inside, after] = parenMatch;
-      const mainText = ((before || '') + (after || '')).trim();
-      const parenthetical = `(${inside})`;
-      
-      if (mainText.length <= maxLength && parenthetical.length <= maxLength) {
-        return [mainText, parenthetical];
-      }
-    }
-
-    // Strategy 4: Intelligent word boundary split as last resort
-    const words = text.split(' ');
-    const result: string[] = [];
-    let currentBullet = '';
-    
-    for (const word of words) {
-      if (currentBullet && (currentBullet + ' ' + word).length > maxLength) {
-        // Find a good breaking point in the current bullet
-        const breakPoint = this.findGoodBreakPoint(currentBullet);
-        if (breakPoint > 0) {
-          const firstPart = currentBullet.substring(0, breakPoint).trim();
-          const secondPart = currentBullet.substring(breakPoint).trim();
-          result.push(firstPart);
-          currentBullet = secondPart + ' ' + word;
-        } else {
-          result.push(currentBullet.trim());
-          currentBullet = word;
-        }
-      } else {
-        currentBullet = currentBullet ? currentBullet + ' ' + word : word;
-      }
-    }
-    
-    if (currentBullet) {
-      result.push(currentBullet.trim());
-    }
-    
-    return result.filter(bullet => bullet.length > 0);
-  }
-
-  private extractConnector(text: string, pattern: RegExp): string {
-    const match = text.match(pattern);
-    if (match && match[0]) {
-      // Extract the connecting word/phrase
-      const connector = match[0].replace(/[,;\s-–]/g, '').trim();
-      return connector || 'and';
-    }
-    return 'and';
-  }
-
-  private findGoodBreakPoint(text: string): number {
-    // Look for good breaking points like conjunctions, prepositions
-    const breakWords = ['and', 'or', 'but', 'while', 'with', 'through', 'by', 'for', 'in', 'on', 'at', 'to'];
-    
-    for (const breakWord of breakWords) {
-      const index = text.lastIndexOf(' ' + breakWord + ' ', text.length * 0.7); // Look in last 30%
-      if (index > text.length * 0.3) { // But not too early (first 30%)
-        return index;
-      }
-    }
-    
-    // Look for comma as backup
-    const commaIndex = text.lastIndexOf(', ', text.length * 0.7);
-    if (commaIndex > text.length * 0.3) {
-      return commaIndex + 2; // After the comma and space
-    }
-    
-    return 0; // No good break point found
+    return formatted.trim();
   }
 
   private formatProblemStatement(discoveryData: DiscoveryData): string {
-    // Create professional executive summary of business challenges
+    // Create concise problem statement (4-5 bullets max, 10-12 words each)
     const problemPoints = [];
     
-    // Extract key themes from business challenge and present professionally
+    // Main business challenge (shortened)
     if (discoveryData.businessChallenge) {
-      const challenge = discoveryData.businessChallenge.toLowerCase();
-      
-      // Market competition challenges
-      if (challenge.includes('compet') || challenge.includes('market share') || challenge.includes('losing customers')) {
-        problemPoints.push(`• ${discoveryData.industry || 'Market'} competition pressures require immediate modernization`);
-      }
-      
-      // Technology/system challenges  
-      if (challenge.includes('legacy') || challenge.includes('outdated') || challenge.includes('system') || challenge.includes('technology')) {
-        problemPoints.push('• Legacy technology infrastructure limits operational efficiency and growth');
-      }
-      
-      // Customer experience challenges
-      if (challenge.includes('customer') || challenge.includes('experience') || challenge.includes('service')) {
-        problemPoints.push('• Current systems cannot deliver modern customer expectations');
-      }
-      
-      // Digital transformation needs
-      if (challenge.includes('digital') || challenge.includes('online') || challenge.includes('e-commerce') || challenge.includes('omnichannel')) {
-        problemPoints.push('• Digital capabilities gap threatens competitive positioning');
-      }
-      
-      // Operational efficiency challenges
-      if (challenge.includes('manual') || challenge.includes('process') || challenge.includes('efficiency') || challenge.includes('productivity')) {
-        problemPoints.push('• Manual processes create bottlenecks and limit scalability');
-      }
+      const shortChallenge = this.shortenBulletPoint(discoveryData.businessChallenge);
+      problemPoints.push(`• ${shortChallenge}`);
     }
     
-    // Add industry-specific context
-    if (discoveryData.industry && problemPoints.length < 4) {
-      problemPoints.push(`• ${discoveryData.industry} industry demands require strategic technology investment`);
+    // Industry context (shortened)
+    if (discoveryData.industry) {
+      problemPoints.push(`• Competitive ${discoveryData.industry} market demands operational excellence`);
     }
     
-    // Add timeline urgency if specified
-    if (discoveryData.duration && problemPoints.length < 4) {
-      problemPoints.push(`• ${discoveryData.duration} implementation timeline requires focused execution`);
+    // Technology challenges (shortened)
+    if (discoveryData.techStack) {
+      problemPoints.push(`• Legacy ${discoveryData.techStack} systems limiting business agility`);
     }
     
-    // Ensure we have at least 3-4 professional problem points
+    // Budget and timeline pressures (shortened)
+    if (discoveryData.budgetRange && discoveryData.duration) {
+      problemPoints.push(`• Tight ${discoveryData.duration} timeline with ${discoveryData.budgetRange} budget constraints`);
+    }
+    
+    // Default problem statement if no specific data (shortened)
     if (problemPoints.length === 0) {
-      problemPoints.push('• Legacy systems hindering competitive advantage and growth');
-      problemPoints.push('• Operational inefficiencies impacting customer satisfaction');
-      problemPoints.push('• Technology gaps limiting business agility and innovation');
-      problemPoints.push('• Digital transformation required for market leadership');
+      problemPoints.push('• Legacy systems hindering operational efficiency');
+      problemPoints.push('• Limited real-time business visibility');
+      problemPoints.push('• Manual processes creating bottlenecks');
+      problemPoints.push('• Digital transformation urgently needed');
     }
     
-    // Limit to 4-5 bullets maximum for slide readability
+    // Limit to 4-5 bullets maximum
     return problemPoints.slice(0, 5).join('\n\n');
   }
 
@@ -471,7 +281,29 @@ export class PPTXService {
     return '⚠️ Review Notes: ' + warnings.join('; ');
   }
 
+  private getNextStepsContent(): string {
+    // Create concise next steps (5-6 bullets max, 10-12 words each)
+    return [
+      '• Review and validate proposal assumptions',
+      '• Schedule technical deep-dive sessions',
+      '• Finalize project scope and timeline',
+      '• Prepare detailed Statement of Work', 
+      '• Begin contract negotiations',
+      '• Plan project kickoff and team allocation'
+    ].slice(0, 6).join('\n\n');
+  }
 
+  private shortenBulletPoint(text: string): string {
+    // Helper to shorten bullet points to 10-12 words maximum
+    const words = text.split(' ');
+    if (words.length <= 12) {
+      return text;
+    }
+    
+    // Take first 10 words and add ellipsis if needed
+    const shortened = words.slice(0, 10).join(' ');
+    return shortened.endsWith('.') ? shortened : shortened + '...';
+  }
 
   private async createFallbackPresentation(proposal: Proposal, discoveryData: DiscoveryData): Promise<string> {
     console.log('📝 Creating fallback presentation...');
@@ -504,6 +336,14 @@ ${this.formatAssumptions(discoveryData)}
 
 CLIENT RESPONSIBILITIES
 ${this.formatClientResponsibilities(discoveryData)}
+
+NEXT STEPS
+• Review and validate proposal assumptions
+• Schedule technical deep-dive sessions
+• Finalize project scope and timeline
+• Prepare detailed Statement of Work
+• Begin contract negotiations
+• Plan project kickoff and team allocation
 
 Overall Confidence Score: ${proposal.overallConfidence || 0}%
 Generated by Presidio Solution Proposal Generator

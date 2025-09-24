@@ -1,0 +1,568 @@
+version: "1.0"
+metadata:
+  author: "Presidio"
+  description: "Proposal slide generation configuration"
+  created: "2024-11-27"
+
+# Global settings for all slides
+defaults:
+  model: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  max_tokens: 2000
+  temperature: 0.7
+
+# Formatting rules applied to all slides
+global_formatting:
+  remove_markdown: true
+  max_line_length: 150
+  bullet_char: "•"
+  remove_section_headers: true
+
+# Compliance and validation rules
+compliance:
+  risky_terms:
+    - "ensure"
+    - "guarantee"
+    - "comprehensive"
+    - "validate"
+    - "will deliver"
+    - "promise"
+    - "commit to"
+  absolute_terms:
+    - "always"
+    - "never"
+    - "all"
+    - "every"
+    - "completely"
+  qualifying_terms:
+    - "proposed"
+    - "designed to"
+    - "anticipated"
+    - "estimated"
+    - "intended to"
+
+# Slide definitions
+slides:
+  - id: "problem_statement"
+    enabled: true
+    order: 0
+    title: "Problem Statement"
+    placeholder_mapping:
+      content: "PROBLEM_CONTENT"
+      title: "PROBLEM_TITLE"
+
+    prompt:
+      template: |
+        You are a senior solution architect at Presidio, a leading digital services and solutions provider.
+
+        Client Information:
+        - Company: {{companyName}}
+        - Industry: {{industry}}
+        - Business Challenge: {{businessChallenge}}
+        - Technology Stack: {{techStack}}
+        - Project Type: {{projectType}}
+        - Duration: {{duration}}
+        - Budget Range: {{budgetRange}}
+        - Success Criteria: {{successCriteria}}
+
+        {{#documentContext}}
+        Additional Context from Documents:
+        {{documentContext}}
+        {{/documentContext}}
+
+        Generate a Problem Statement section for an executive PowerPoint slide. This content will be displayed with 24pt font, so keep it extremely concise and impactful.
+
+        Analyze the business challenge and create bullet points that:
+        • Frame the core business problems driving this {{projectType}} initiative
+        • Highlight pain points specific to the {{industry}} industry
+        • Connect technical limitations to business impact
+        • Create urgency around solving these challenges
+        • Position problems in a way that naturally leads to our solution
+
+        Focus on extracting and articulating the key issues from their business challenge:
+        "{{businessChallenge}}"
+
+        Consider their current technology context: {{techStack}}
+
+        CRITICAL FORMATTING REQUIREMENTS:
+        - Use bullet points ({{bulletChar}}) for all content - NO paragraphs
+        - NO markdown formatting (no ##, **, _, etc.)
+        - NO section headers or titles in the content
+        - Do NOT start with "Problem Statement" or any section name
+        - Keep each bullet point to ONE line maximum ({{maxWordsPerBullet}} words per bullet)
+        - Maximum {{maxBullets}} bullet points total (must fit on slide with 24pt font)
+        - Use executive-level language focused on business impact
+        - Each bullet should describe a distinct problem or pain point
+        - Avoid solutions - focus only on problems and their impact
+        - Make problems specific to {{companyName}}, not generic
+
+        Write SHORT, impactful bullet points for the Problem Statement slide content ONLY (no headers):
+
+      variables:
+        maxBullets: 4
+        maxWordsPerBullet: 15
+        bulletChar: "•"
+
+    validation:
+      min_word_count: 60
+      max_word_count: 200
+      max_bullets: 4
+
+    scoring:
+      base_score: 90
+      penalties:
+        too_short: 15
+        too_long: 10
+        poor_structure: 10
+      bonuses:
+        has_qualifying_terms: 5
+
+  - id: "overview"
+    enabled: true
+    order: 2
+    title: "Overview"
+    placeholder_mapping:
+      content: "OVERVIEW_CONTENT"
+      title: "OVERVIEW_TITLE"
+      confidence: "OVERVIEW_CONFIDENCE"
+      warnings: "OVERVIEW_WARNINGS"
+
+    prompt:
+      template: |
+        You are a senior solution architect at Presidio, a leading digital services and solutions provider.
+
+        Client Information:
+        - Company: {{companyName}}
+        - Industry: {{industry}}
+        - Business Challenge: {{businessChallenge}}
+        - Technology Stack: {{techStack}}
+        - Project Type: {{projectType}}
+        - Duration: {{duration}}
+        - Budget Range: {{budgetRange}}
+        - Success Criteria: {{successCriteria}}
+
+        {{#documentContext}}
+        Additional Context from Documents:
+        {{documentContext}}
+        {{/documentContext}}
+
+        Generate an Overview section for a PowerPoint slide presentation. This content will be displayed on a slide with 24pt font, so keep it concise and impactful.
+
+        Create bullet points that cover:
+        • {{companyName}}'s position in the {{industry}} industry and current challenges
+        • Why their business challenge matters strategically to their success
+        • How this connects to their broader business objectives
+        • Presidio's proposed approach to address their needs
+
+        CRITICAL FORMATTING REQUIREMENTS:
+        - Use bullet points ({{bulletChar}}) for all content - NO paragraphs
+        - NO markdown formatting (no ##, **, _, etc.)
+        - NO section headers or titles in the content (the slide already has a title)
+        - Do NOT start with "Overview" or any section name
+        - Keep each bullet point to ONE line maximum ({{maxWordsPerBullet}} words per bullet)
+        - Use simple, clear language for executive audience
+        - Maximum {{maxBullets}} bullet points total (must fit on slide with 24pt font)
+        - Avoid commitment words like "ensure", "guarantee", "comprehensive"
+        - Use qualifying language: "proposed", "designed to", "anticipated"
+        - Be concise and impactful - every word must add value
+
+        Write SHORT, punchy bullet points for the Overview slide content ONLY (no headers):
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 12
+        bulletChar: "•"
+
+    validation:
+      required_keywords:
+        - "presidio"
+      min_word_count: 100
+      max_word_count: 300
+      max_bullets: 5
+
+    scoring:
+      base_score: 85
+      penalties:
+        missing_required_keyword: 15
+        contains_risky_term: 10
+        too_short: 20
+        too_long: 10
+        poor_structure: 10
+      bonuses:
+        has_qualifying_terms: 5
+
+  - id: "solution_approach"
+    enabled: true
+    order: 3
+    title: "Solution & Approach"
+    placeholder_mapping:
+      content: "SOLUTION_CONTENT"
+      title: "SOLUTION_TITLE"
+      confidence: "SOLUTION_CONFIDENCE"
+      warnings: "SOLUTION_WARNINGS"
+
+    prompt:
+      template: |
+        You are a senior solution architect at Presidio, a leading digital services and solutions provider.
+
+        Client Information:
+        - Company: {{companyName}}
+        - Industry: {{industry}}
+        - Business Challenge: {{businessChallenge}}
+        - Technology Stack: {{techStack}}
+        - Project Type: {{projectType}}
+        - Duration: {{duration}}
+        - Budget Range: {{budgetRange}}
+        - Success Criteria: {{successCriteria}}
+
+        {{#documentContext}}
+        Additional Context from Documents:
+        {{documentContext}}
+        {{/documentContext}}
+
+        Generate a Solution & Approach section for a PowerPoint slide. This content will be displayed with 24pt font, so keep it concise and scannable.
+
+        Create bullet points covering these areas:
+        • High-level solution architecture that addresses their challenge
+        • Key technology decisions and integration strategy
+        • Phased delivery approach with clear implementation stages
+        • Agile methodology and risk mitigation approach
+        • Testing, validation, and quality assurance strategy
+        • Project governance and communication framework
+
+        CRITICAL FORMATTING REQUIREMENTS:
+        - Use bullet points ({{bulletChar}}) for all content - NO paragraphs or numbered lists
+        - NO markdown formatting (no ##, **, _, etc.)
+        - NO section headers or titles in the content (the slide already has a title)
+        - Do NOT start with "Solution & Approach" or any section name
+        - Keep each bullet point to ONE line maximum ({{maxWordsPerBullet}} words per bullet)
+        - Maximum {{maxBullets}} bullet points total (must fit on slide with 24pt font)
+        - Use outcome-focused language, avoid quantity guarantees
+        - Include qualifying terms: "estimated", "anticipated", "proposed"
+        - Avoid risky terms: "ensure", "validate", "comprehensive", "guarantee"
+        - Focus on approach and capabilities, not specific deliverables
+        - Be concise and impactful - every word must add value
+
+        Write SHORT, punchy bullet points for the Solution & Approach slide content ONLY (no headers):
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+        bulletChar: "•"
+
+    validation:
+      min_word_count: 100
+      max_word_count: 350
+      max_bullets: 6
+
+    scoring:
+      base_score: 85
+      penalties:
+        contains_risky_term: 10
+        too_short: 20
+        too_long: 10
+        poor_structure: 10
+      bonuses:
+        has_qualifying_terms: 5
+
+  - id: "outcomes"
+    enabled: true
+    order: 4
+    title: "Expected Outcomes"
+    placeholder_mapping:
+      content: "OUTCOMES_CONTENT"
+      title: "OUTCOMES_TITLE"
+      confidence: "OUTCOMES_CONFIDENCE"
+      warnings: "OUTCOMES_WARNINGS"
+
+    prompt:
+      template: |
+        You are a senior solution architect at Presidio, a leading digital services and solutions provider.
+
+        Client Information:
+        - Company: {{companyName}}
+        - Industry: {{industry}}
+        - Business Challenge: {{businessChallenge}}
+        - Technology Stack: {{techStack}}
+        - Project Type: {{projectType}}
+        - Duration: {{duration}}
+        - Budget Range: {{budgetRange}}
+        - Success Criteria: {{successCriteria}}
+
+        {{#documentContext}}
+        Additional Context from Documents:
+        {{documentContext}}
+        {{/documentContext}}
+
+        Generate an Expected Outcomes section for a PowerPoint slide. This content will be displayed with 24pt font, so keep it concise and impactful.
+
+        Create bullet points for expected outcomes that are:
+        • Directly aligned with their business challenge and success criteria
+        • Measurable and value-focused (business benefits, not effort metrics)
+        • Mix of business outcomes (revenue, efficiency, strategic benefits)
+        • Technical outcomes (system improvements, performance gains, new capabilities)
+        • Realistic and achievable within their constraints
+
+        CRITICAL FORMATTING REQUIREMENTS:
+        - Use bullet points ({{bulletChar}}) for all content - NO paragraphs or numbered sections
+        - NO markdown formatting (no ##, **, _, etc.)
+        - NO section headers or titles in the content (the slide already has a title)
+        - Do NOT start with "Expected Outcomes" or any section name
+        - Keep each bullet point to ONE line maximum ({{maxWordsPerBullet}} words per bullet)
+        - Maximum {{maxBullets}} bullet points total (must fit on slide with 24pt font)
+        - Use business language that executives understand
+        - Avoid technical jargon or implementation details
+        - Focus on "what" will be achieved, not "how"
+        - Include quantifiable benefits where possible (percentages, timeframes)
+        - Use qualifying terms: "anticipated", "projected", "designed to achieve"
+        - Be concise and impactful - every word must add value
+
+        Write SHORT, punchy bullet points for the Expected Outcomes slide content ONLY (no headers):
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 12
+        bulletChar: "•"
+
+    validation:
+      min_word_count: 100
+      max_word_count: 300
+      max_bullets: 5
+      should_contain_numbers: true
+
+    scoring:
+      base_score: 85
+      penalties:
+        contains_risky_term: 10
+        too_short: 20
+        too_long: 10
+        poor_structure: 10
+        missing_metrics: 10
+      bonuses:
+        has_qualifying_terms: 5
+        has_metrics: 5
+
+  - id: "next_steps"
+    enabled: true
+    order: 5
+    title: "Next Steps"
+    placeholder_mapping:
+      content: "NEXT_STEPS"
+      title: "NEXTSTEPS_TITLE"
+
+    prompt:
+      template: |
+        You are a senior solution architect at Presidio, a leading digital services and solutions provider.
+
+        Client Information:
+        - Company: {{companyName}}
+        - Industry: {{industry}}
+        - Business Challenge: {{businessChallenge}}
+        - Technology Stack: {{techStack}}
+        - Project Type: {{projectType}}
+        - Duration: {{duration}}
+        - Budget Range: {{budgetRange}}
+        - Success Criteria: {{successCriteria}}
+
+        {{#documentContext}}
+        Additional Context from Documents:
+        {{documentContext}}
+        {{/documentContext}}
+
+        Generate a Next Steps section for a PowerPoint slide. This content will be displayed with 24pt font, so keep it concise and actionable.
+
+        Create bullet points for immediate next steps that are:
+        • Specific to {{companyName}} and their {{projectType}} project
+        • Actionable steps that move the engagement forward
+        • Clear timeline-based activities for the next 30-60 days
+        • Focused on validation, planning, and project initiation
+        • Relevant to their {{industry}} industry requirements
+        • Appropriate for their {{budgetRange}} budget and {{duration}} timeline
+
+        CRITICAL FORMATTING REQUIREMENTS:
+        - Use bullet points ({{bulletChar}}) for all content - NO paragraphs or numbered lists
+        - NO markdown formatting (no ##, **, _, etc.)
+        - NO section headers or titles in the content (the slide already has a title)
+        - Do NOT start with "Next Steps" or any section name
+        - Keep each bullet point to ONE line maximum ({{maxWordsPerBullet}} words per bullet)
+        - Maximum {{maxBullets}} bullet points total (must fit on slide with 24pt font)
+        - Use action-oriented language with clear deliverables
+        - Include specific timeframes where appropriate (e.g., "within 2 weeks")
+        - Focus on mutual collaboration and partnership approach
+        - Avoid generic steps - make them client and project specific
+        - Be concise and impactful - every word must add value
+
+        Write SHORT, punchy bullet points for the Next Steps slide content ONLY (no headers):
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+        bulletChar: "•"
+
+    validation:
+      min_word_count: 100
+      max_word_count: 350
+      max_bullets: 6
+
+    scoring:
+      base_score: 85
+      penalties:
+        contains_risky_term: 10
+        too_short: 20
+        too_long: 10
+        poor_structure: 10
+      bonuses:
+        has_qualifying_terms: 5
+
+  - id: "assumptions"
+    enabled: true
+    order: 6
+    title: "Assumptions"
+    placeholder_mapping:
+      content: "ASSUMPTIONS_CONTENT"
+      title: "ASSUMPTIONS_TITLE"
+
+    prompt:
+      template: |
+        You are a senior solution architect at Presidio, a leading digital services and solutions provider.
+
+        Client Information:
+        - Company: {{companyName}}
+        - Industry: {{industry}}
+        - Business Challenge: {{businessChallenge}}
+        - Technology Stack: {{techStack}}
+        - Project Type: {{projectType}}
+        - Duration: {{duration}}
+        - Budget Range: {{budgetRange}}
+        - Success Criteria: {{successCriteria}}
+
+        {{#documentContext}}
+        Additional Context from Documents:
+        {{documentContext}}
+        {{/documentContext}}
+
+        Generate an Assumptions section for a PowerPoint slide. This content will be displayed with 24pt font, so keep it concise and professional.
+
+        Create bullet points for key assumptions that are:
+        • Specific to {{companyName}}'s {{projectType}} project
+        • Realistic for their {{industry}} industry context
+        • Related to their {{techStack}} and technical environment
+        • Appropriate for their {{duration}} timeline and {{budgetRange}} budget
+        • Standard project assumptions that protect both parties
+
+        Include assumptions about:
+        • System availability and current infrastructure stability
+        • Client resource availability and commitment levels
+        • Budget and timeline parameters
+        • Technical prerequisites and requirements
+        • Business continuity during implementation
+
+        CRITICAL FORMATTING REQUIREMENTS:
+        - Use bullet points ({{bulletChar}}) for all content - NO paragraphs
+        - NO markdown formatting (no ##, **, _, etc.)
+        - NO section headers or titles in the content
+        - Do NOT start with "Assumptions" or any section name
+        - Keep each bullet point to ONE line maximum ({{maxWordsPerBullet}} words per bullet)
+        - Maximum {{maxBullets}} bullet points total (must fit on slide with 24pt font)
+        - Use professional, clear language
+        - Be specific but concise - avoid generic statements
+        - Focus on project-critical assumptions only
+
+        Write SHORT, concise bullet points for the Assumptions slide content ONLY (no headers):
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 12
+        bulletChar: "•"
+
+    validation:
+      min_word_count: 80
+      max_word_count: 250
+      max_bullets: 5
+
+    scoring:
+      base_score: 90
+      penalties:
+        too_short: 15
+        too_long: 10
+        poor_structure: 10
+      bonuses:
+        has_qualifying_terms: 5
+
+  - id: "client_responsibilities"
+    enabled: true
+    order: 7
+    title: "Client Responsibilities"
+    placeholder_mapping:
+      content: "CLIENT_RESPONSIBILITIES_CONTENT"
+      title: "CLIENT_RESPONSIBILITIES_TITLE"
+
+    prompt:
+      template: |
+        You are a senior solution architect at Presidio, a leading digital services and solutions provider.
+
+        Client Information:
+        - Company: {{companyName}}
+        - Industry: {{industry}}
+        - Business Challenge: {{businessChallenge}}
+        - Technology Stack: {{techStack}}
+        - Project Type: {{projectType}}
+        - Duration: {{duration}}
+        - Budget Range: {{budgetRange}}
+        - Success Criteria: {{successCriteria}}
+
+        {{#documentContext}}
+        Additional Context from Documents:
+        {{documentContext}}
+        {{/documentContext}}
+
+        Generate a Client Responsibilities section for a PowerPoint slide. This content will be displayed with 24pt font, so keep it concise and clear.
+
+        Create bullet points for key client responsibilities that are:
+        • Specific to {{companyName}}'s {{projectType}} project
+        • Appropriate for their {{industry}} industry and organization
+        • Realistic given their {{techStack}} and technical environment
+        • Aligned with their {{duration}} timeline expectations
+        • Standard responsibilities for successful project delivery
+
+        Include responsibilities about:
+        • Project governance and decision-making authority
+        • Resource allocation and subject matter expert availability
+        • System access and documentation provision
+        • Testing participation and validation
+        • Communication and meeting participation
+        • Change management and user adoption
+
+        CRITICAL FORMATTING REQUIREMENTS:
+        - Use bullet points ({{bulletChar}}) for all content - NO paragraphs
+        - NO markdown formatting (no ##, **, _, etc.)
+        - NO section headers or titles in the content
+        - Do NOT start with "Client Responsibilities" or any section name
+        - Keep each bullet point to ONE line maximum ({{maxWordsPerBullet}} words per bullet)
+        - Maximum {{maxBullets}} bullet points total (must fit on slide with 24pt font)
+        - Use clear, action-oriented language
+        - Be specific about expectations
+        - Focus on critical success factors only
+
+        Write SHORT, action-oriented bullet points for the Client Responsibilities slide content ONLY (no headers):
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+        bulletChar: "•"
+
+    validation:
+      min_word_count: 90
+      max_word_count: 280
+      max_bullets: 6
+
+    scoring:
+      base_score: 90
+      penalties:
+        too_short: 15
+        too_long: 10
+        poor_structure: 10
+      bonuses:
+        has_qualifying_terms: 5
+
+# Static slides that don't need AI generation (currently none - all slides are AI-generated)
+# static_slides:

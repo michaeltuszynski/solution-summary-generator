@@ -128,6 +128,11 @@ app.get('/api/proposals/:id/status',
   proposalController.getProposalStatus.bind(proposalController)
 );
 
+// Get available templates
+app.get('/api/templates',
+  proposalController.getTemplates.bind(proposalController)
+);
+
 // Debug endpoint to refresh Claude models
 app.post('/api/debug/refresh-models', async (req, res) => {
   try {

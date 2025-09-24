@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Slide Configuration Schema",
+  "type": "object",
+  "required": ["version", "metadata", "defaults", "slides"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["author", "description"],
+      "properties": {
+        "author": { "type": "string" },
+        "description": { "type": "string" },
+        "created": { "type": "string" }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "model": { "type": "string" },
+        "max_tokens": { "type": "number" },
+        "temperature": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "global_formatting": {
+      "type": "object",
+      "properties": {
+        "remove_markdown": { "type": "boolean" },
+        "max_line_length": { "type": "number" },
+        "bullet_char": { "type": "string" },
+        "remove_section_headers": { "type": "boolean" }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "risky_terms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "absolute_terms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "qualifying_terms": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "enabled", "order", "title", "placeholder_mapping", "prompt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "enabled": { "type": "boolean" },
+          "order": { "type": "number" },
+          "title": { "type": "string" },
+          "placeholder_mapping": {
+            "type": "object",
+            "required": ["content"],
+            "properties": {
+              "content": { "type": "string" },
+              "title": { "type": "string" },
+              "confidence": { "type": "string" },
+              "warnings": { "type": "string" }
+            }
+          },
+          "prompt": {
+            "type": "object",
+            "required": ["template"],
+            "properties": {
+              "template": { "type": "string" },
+              "variables": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          },
+          "validation": {
+            "type": "object",
+            "properties": {
+              "required_keywords": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "min_word_count": { "type": "number" },
+              "max_word_count": { "type": "number" },
+              "max_bullets": { "type": "number" },
+              "should_contain_numbers": { "type": "boolean" }
+            }
+          },
+          "scoring": {
+            "type": "object",
+            "properties": {
+              "base_score": { "type": "number" },
+              "penalties": {
+                "type": "object",
+                "additionalProperties": { "type": "number" }
+              },
+              "bonuses": {
+                "type": "object",
+                "additionalProperties": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "static_slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "order", "title", "placeholder_mapping", "source"],
+        "properties": {
+          "id": { "type": "string" },
+          "order": { "type": "number" },
+          "title": { "type": "string" },
+          "placeholder_mapping": {
+            "type": "object"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["discovery_data", "template", "static"]
+          }
+        }
+      }
+    }
+  }
+}
