@@ -1,7 +1,5 @@
 import * as React from "react"
 
-import { cn } from "../../lib/utils"
-
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -44,7 +42,7 @@ CardHeader.displayName = "CardHeader"
 const CardTitle = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement>
->(({ className, style, ...props }, ref) => (
+>(({ className, style, children, ...props }, ref) => (
   <h3
     ref={ref}
     className={className}
@@ -57,7 +55,9 @@ const CardTitle = React.forwardRef<
       ...style
     }}
     {...props}
-  />
+  >
+    {children}
+  </h3>
 ))
 CardTitle.displayName = "CardTitle"
 
