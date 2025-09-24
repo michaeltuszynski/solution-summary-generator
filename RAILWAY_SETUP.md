@@ -16,8 +16,7 @@
 1. Click "New" → "GitHub Repo" → Select your repo
 2. In the service settings, set:
    - **Root Directory**: `/backend`
-   - **Build Command**: `npm ci && npm run build`
-   - **Start Command**: `npm run start:prod`
+   - Railway will auto-detect the build configuration from railway.json
 
 ### 3. Configure Backend Environment Variables
 Add these in the Railway backend service settings:
@@ -32,8 +31,7 @@ FRONTEND_URL=https://your-frontend-domain.up.railway.app
 1. Click "New" → "GitHub Repo" → Select your repo again
 2. In the service settings, set:
    - **Root Directory**: `/frontend`
-   - **Build Command**: `npm ci && npm run build`
-   - **Start Command**: `npx serve -s build -l $PORT`
+   - Railway will auto-detect the build configuration from railway.json
 
 ### 5. Configure Frontend Environment Variables
 Add these in the Railway frontend service settings:
