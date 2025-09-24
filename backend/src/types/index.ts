@@ -60,8 +60,7 @@ export interface GenerationResponse {
   error?: string;
 }
 
-export interface ApiError {
-  message: string;
+export interface ApiError extends Error {
   status: number;
   code?: string;
 }

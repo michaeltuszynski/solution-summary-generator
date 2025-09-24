@@ -235,7 +235,7 @@ export class PPTXService {
         let currentPart = '';
         
         for (let i = 0; i < parts.length; i++) {
-          const part = parts[i].trim();
+          const part = parts[i]?.trim() || '';
           const connector = i > 0 ? this.extractConnector(text, pattern) : '';
           
           if (currentPart && (currentPart + ' ' + connector + ' ' + part).length > maxLength) {
@@ -291,7 +291,7 @@ export class PPTXService {
     const parenMatch = text.match(/^(.*?)\s*\((.*?)\)(.*)$/);
     if (parenMatch) {
       const [, before, inside, after] = parenMatch;
-      const mainText = (before + after).trim();
+      const mainText = ((before || '') + (after || '')).trim();
       const parenthetical = `(${inside})`;
       
       if (mainText.length <= maxLength && parenthetical.length <= maxLength) {

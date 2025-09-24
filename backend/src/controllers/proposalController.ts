@@ -66,6 +66,13 @@ export class ProposalController {
   async downloadPresentation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const filename = req.params.filename;
+      if (!filename) {
+        res.status(400).json({
+          success: false,
+          error: 'Filename is required'
+        });
+        return;
+      }
       const filePath = path.join(__dirname, '..', '..', 'generated', filename);
 
       if (!fs.existsSync(filePath)) {
