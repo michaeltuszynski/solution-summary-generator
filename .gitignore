@@ -63,3 +63,7 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 backend/generated/*
 !backend/generated/.gitkeep
+
+# Log files but keep folder structure
+logs/*
+!logs/.gitkeep

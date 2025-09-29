@@ -59,10 +59,9 @@ export class PPTXService {
 
       // Replace placeholders with actual data
       console.log('📝 Replacing template content while preserving styling...');
-      doc.setData(templateData);
 
       try {
-        doc.render();
+        doc.render(templateData);
       } catch (error) {
         console.warn('⚠️ Template rendering had issues, but continuing...');
         console.warn('Error details:', error);
