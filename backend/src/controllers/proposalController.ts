@@ -13,6 +13,92 @@ export class ProposalController {
     private pptxService: PPTXService
   ) {}
 
+  async generateProposalWithSSE(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const discoveryData: DiscoveryData = req.body.discoveryData;
+      const templateId: string | undefined = req.body.templateId;
+      const uploadedFiles = req.files as Express.Multer.File[] | undefined;
+
+      // Set up SSE
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+
+      const sendEvent = (event: string, data: any) => {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
+
+      console.log('Generating proposal for:', discoveryData.companyName);
+      console.log('Using template:', templateId || 'default');
+      console.log('Files uploaded:', uploadedFiles?.length || 0);
+
+      sendEvent('progress', { step: 'preparing', message: 'Preparing data...', progress: 10 });
+
+      // Process uploaded documents for context
+      let documentContext = '';
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        sendEvent('progress', { step: 'processing', message: 'Processing documents...', progress: 15 });
+        for (const file of uploadedFiles) {
+          try {
+            const content = await this.documentService.extractContent(file.path);
+            documentContext += content + '\n\n';
+          } catch (error) {
+            console.warn(`Failed to process ${file.originalname}:`, error);
+          }
+        }
+      }
+
+      // Generate proposal content with progress callback
+      sendEvent('progress', { step: 'generating', message: 'Generating proposal sections...', progress: 20 });
+
+      const proposal = await this.proposalOrchestrator.generateProposal(
+        discoveryData,
+        documentContext,
+        templateId,
+        (slideTitle: string, slideNumber: number, totalSlides: number) => {
+          const progress = 20 + Math.round((slideNumber / totalSlides) * 65); // 20% to 85%
+          sendEvent('slide', {
+            slideTitle,
+            slideNumber,
+            totalSlides,
+            progress
+          });
+        }
+      );
+
+      // Generate PPTX presentation
+      sendEvent('progress', { step: 'creating', message: 'Creating presentation...', progress: 90 });
+      const pptxPath = await this.pptxService.createPresentation(proposal, discoveryData);
+
+      // Clean up uploaded files
+      if (uploadedFiles) {
+        uploadedFiles.forEach(file => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (error) {
+            console.warn('Failed to cleanup file:', file.path);
+          }
+        });
+      }
+
+      // Send completion event
+      sendEvent('complete', {
+        proposal,
+        downloadUrl: `/api/proposals/download/${path.basename(pptxPath)}`,
+        progress: 100
+      });
+
+      res.end();
+    } catch (error: any) {
+      console.error('SSE Generation error:', error);
+      res.write(`event: error\n`);
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  }
+
   async generateProposal(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const discoveryData: DiscoveryData = req.body.discoveryData;

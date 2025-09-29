@@ -118,6 +118,13 @@ app.post('/api/proposals/generate',
   proposalController.generateProposal.bind(proposalController)
 );
 
+// SSE endpoint for proposal generation with real-time progress
+app.post('/api/proposals/generate-stream',
+  upload.array('documents', 5),
+  validateDiscoveryData,
+  proposalController.generateProposalWithSSE.bind(proposalController)
+);
+
 // Download generated PPTX
 app.get('/api/proposals/download/:filename',
   proposalController.downloadPresentation.bind(proposalController)

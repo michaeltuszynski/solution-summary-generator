@@ -52,6 +52,95 @@ apiClient.interceptors.response.use(
 
 export class ProposalApi {
   /**
+   * Generate a proposal with real-time progress updates via SSE
+   */
+  static async generateProposalWithProgress(
+    discoveryData: DiscoveryData,
+    documents?: File[],
+    templateId?: string,
+    onProgress?: (data: { slideTitle?: string; progress: number; message?: string; slideNumber?: number; totalSlides?: number }) => void
+  ): Promise<GenerationResponse> {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('discoveryData', JSON.stringify(discoveryData));
+      if (templateId) {
+        formData.append('templateId', templateId);
+      }
+      if (documents && documents.length > 0) {
+        documents.forEach((file) => {
+          formData.append('documents', file);
+        });
+      }
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE_URL}/proposals/generate-stream`);
+
+      let lastEventData: any = null;
+
+      xhr.onprogress = function() {
+        const messages = xhr.responseText.split('\n\n');
+        for (const message of messages) {
+          if (!message.trim()) continue;
+
+          const lines = message.split('\n');
+          let eventType = 'message';
+          let data = '';
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.substring(7);
+            } else if (line.startsWith('data: ')) {
+              data = line.substring(6);
+            }
+          }
+
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              lastEventData = parsed;
+
+              if (eventType === 'slide' && onProgress) {
+                onProgress({
+                  slideTitle: parsed.slideTitle,
+                  progress: parsed.progress,
+                  slideNumber: parsed.slideNumber,
+                  totalSlides: parsed.totalSlides,
+                  message: `Generating: ${parsed.slideTitle}...`
+                });
+              } else if (eventType === 'progress' && onProgress) {
+                onProgress({
+                  progress: parsed.progress,
+                  message: parsed.message
+                });
+              } else if (eventType === 'complete') {
+                resolve({
+                  success: true,
+                  proposal: parsed.proposal,
+                  downloadUrl: parsed.downloadUrl
+                });
+              } else if (eventType === 'error') {
+                reject(new Error(parsed.error || 'Generation failed'));
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        }
+      };
+
+      xhr.onerror = function() {
+        reject(new Error('Network error during generation'));
+      };
+
+      xhr.onabort = function() {
+        reject(new Error('Generation cancelled'));
+      };
+
+      xhr.send(formData);
+    });
+  }
+
+  /**
    * Generate a proposal from discovery data and optional documents
    */
   static async generateProposal(

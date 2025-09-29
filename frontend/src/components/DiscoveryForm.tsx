@@ -5,24 +5,36 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { DiscoveryData, IndustryType, ProjectType, DurationRange, BudgetRange, FormErrors, Template } from '../types';
 import ProposalApi from '../services/api';
+import { useWizardState } from '../hooks/useWizardState';
 
 interface DiscoveryFormProps {
   onSubmit: (data: DiscoveryData, templateId?: string) => void;
+  initialData?: DiscoveryData;
 }
 
-const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
-  const [formData, setFormData] = useState<Partial<DiscoveryData>>({
-    companyName: '',
-    businessChallenge: '',
-    techStack: '',
-    successCriteria: ''
-  });
+const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit, initialData }) => {
+  const { selectedTemplateId } = useWizardState();
+
+  const [formData, setFormData] = useState<Partial<DiscoveryData>>(
+    initialData || {
+      companyName: '',
+      businessChallenge: '',
+      techStack: '',
+      successCriteria: ''
+    }
+  );
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [localTemplateId, setLocalTemplateId] = useState<string>(selectedTemplateId || '');
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   // Fetch templates on component mount
   useEffect(() => {
@@ -32,10 +44,12 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
         const response = await ProposalApi.getTemplates();
         if (response.success && response.templates) {
           setTemplates(response.templates);
-          // Auto-select default template if available
-          const defaultTemplate = response.templates.find(t => t.id === 'default');
-          if (defaultTemplate) {
-            setSelectedTemplateId(defaultTemplate.id);
+          // Auto-select default template if not already set
+          if (!localTemplateId) {
+            const defaultTemplate = response.templates.find(t => t.id === 'default');
+            if (defaultTemplate) {
+              setLocalTemplateId(defaultTemplate.id);
+            }
           }
         }
       } catch (error) {
@@ -46,6 +60,7 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
       }
     };
     fetchTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const industries: IndustryType[] = [
@@ -120,25 +135,15 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      // Simulate brief validation delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      onSubmit(formData as DiscoveryData, selectedTemplateId || undefined);
-    } catch (error) {
-      console.error('Form submission error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Pass data to parent - let parent handle context update and navigation
+    onSubmit(formData as DiscoveryData, localTemplateId || undefined);
   };
 
   return (
@@ -290,7 +295,7 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
           <label htmlFor="template-select" className="text-sm font-medium">
             Proposal Template
           </label>
-          <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+          <Select value={localTemplateId} onValueChange={setLocalTemplateId}>
             <SelectTrigger id="template-select" name="template">
               <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select Template"} />
             </SelectTrigger>
@@ -309,11 +314,10 @@ const DiscoveryForm: React.FC<DiscoveryFormProps> = ({ onSubmit }) => {
       <div className="flex justify-center pt-4">
         <Button
           type="submit"
-          disabled={isSubmitting}
           className="w-full max-w-md"
           size="lg"
         >
-          {isSubmitting ? 'Processing...' : 'Continue to Documents'}
+          Continue to Documents
         </Button>
       </div>
     </form>

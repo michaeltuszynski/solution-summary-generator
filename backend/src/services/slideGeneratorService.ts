@@ -37,14 +37,23 @@ export class SlideGeneratorService {
    */
   async generateAllSlides(
     discoveryData: DiscoveryData,
-    documentContext: string = ''
+    documentContext: string = '',
+    progressCallback?: (slideTitle: string, slideNumber: number, totalSlides: number) => void
   ): Promise<SlideGenerationResult[]> {
     const slides = this.configService.getEnabledSlides();
     const results: SlideGenerationResult[] = [];
+    const totalSlides = slides.length;
 
-    for (const slideConfig of slides) {
+    for (let i = 0; i < slides.length; i++) {
+      const slideConfig = slides[i];
       try {
-        console.log(`📝 Generating slide: ${slideConfig.title}`);
+        console.log(`📝 Generating slide ${i + 1}/${totalSlides}: ${slideConfig.title}`);
+
+        // Call progress callback if provided
+        if (progressCallback) {
+          progressCallback(slideConfig.title, i + 1, totalSlides);
+        }
+
         const result = await this.generateSlide(slideConfig, discoveryData, documentContext);
         results.push(result);
       } catch (error: any) {

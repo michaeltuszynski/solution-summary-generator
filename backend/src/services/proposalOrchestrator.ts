@@ -51,7 +51,12 @@ export class ProposalOrchestrator {
   /**
    * Generate a proposal using the configuration-driven system with automatic template selection
    */
-  async generateProposal(discoveryData: DiscoveryData, documentContext: string = '', templateId?: string): Promise<Proposal> {
+  async generateProposal(
+    discoveryData: DiscoveryData,
+    documentContext: string = '',
+    templateId?: string,
+    progressCallback?: (slideTitle: string, slideNumber: number, totalSlides: number) => void
+  ): Promise<Proposal> {
     // If a different template is requested, reinitialize
     if (templateId && templateId !== this.currentTemplateId) {
       this.initializeWithTemplate(templateId);
@@ -71,7 +76,7 @@ export class ProposalOrchestrator {
       throw new Error('Proposal generator not initialized');
     }
 
-    return this.generator.generateProposal(discoveryData, documentContext);
+    return this.generator.generateProposal(discoveryData, documentContext, progressCallback);
   }
 
   /**

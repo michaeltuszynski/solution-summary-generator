@@ -50,11 +50,42 @@ const GenerationStatus: React.FC<GenerationStatusProps> = ({ status }) => {
       {/* Current Step */}
       <div className="space-y-3">
         {!error && (
-          <div className="flex items-center justify-center space-x-3">
-            <div 
-              className="animate-spin rounded-full h-6 w-6 border-b-2"
-              style={{ borderColor: 'var(--primary-blue)' }}
-            ></div>
+          <div className="flex flex-col items-center justify-center space-y-4">
+            {/* Pulsing Circles Animation */}
+            <div className="relative flex items-center justify-center h-24 w-24">
+              <div
+                className="absolute rounded-full h-24 w-24 border-4 animate-ping"
+                style={{
+                  borderColor: 'var(--primary-blue)',
+                  animationDuration: '2s',
+                  opacity: 0.3
+                }}
+              ></div>
+              <div
+                className="absolute rounded-full h-16 w-16 border-4 animate-ping"
+                style={{
+                  borderColor: 'var(--primary-orange)',
+                  animationDuration: '1.5s',
+                  animationDelay: '0.3s',
+                  opacity: 0.4
+                }}
+              ></div>
+              <div
+                className="absolute rounded-full h-12 w-12 animate-spin"
+                style={{
+                  borderWidth: '3px',
+                  borderStyle: 'solid',
+                  borderColor: 'var(--primary-blue) transparent transparent transparent',
+                  animationDuration: '1s'
+                }}
+              ></div>
+              <div
+                className="absolute text-2xl animate-pulse"
+                style={{ animationDuration: '1.5s' }}
+              >
+                🤖
+              </div>
+            </div>
             <span className="text-lg font-medium" style={{ color: 'var(--dark-gray)', fontFamily: 'var(--font-heading)' }}>
               {currentStep}
             </span>
@@ -81,11 +112,11 @@ const GenerationStatus: React.FC<GenerationStatusProps> = ({ status }) => {
           ].map(({ step, label, range }) => {
             const isActive = progress >= range[0]! && progress < range[1]!;
             const isComplete = progress >= range[1]!;
-            
+
             return (
               <Card
                 key={step}
-                className="transition-all duration-300"
+                className="transition-all duration-500 transform"
                 style={{
                   backgroundColor: isComplete
                     ? '#f0fdf4'
@@ -96,14 +127,20 @@ const GenerationStatus: React.FC<GenerationStatusProps> = ({ status }) => {
                     ? '#bbf7d0'
                     : isActive
                     ? 'var(--primary-blue)'
-                    : 'var(--medium-gray)'
+                    : 'var(--medium-gray)',
+                  borderWidth: isActive ? '2px' : '1px',
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: isActive ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
                 }}
               >
                 <CardContent className="p-4 text-center">
-                  <div className="text-3xl mb-2">
+                  <div
+                    className={`text-3xl mb-2 ${isActive ? 'animate-bounce' : ''}`}
+                    style={{ animationDuration: '1s' }}
+                  >
                     {isComplete ? '✅' : isActive ? '🔄' : '⏳'}
                   </div>
-                  <div 
+                  <div
                     className="text-sm font-medium"
                     style={{
                       color: isComplete

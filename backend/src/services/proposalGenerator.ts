@@ -29,7 +29,11 @@ export class ProposalGenerator {
   /**
    * Generate a complete proposal using the configuration-driven system
    */
-  async generateProposal(discoveryData: DiscoveryData, documentContext: string = ''): Promise<Proposal> {
+  async generateProposal(
+    discoveryData: DiscoveryData,
+    documentContext: string = '',
+    progressCallback?: (slideTitle: string, slideNumber: number, totalSlides: number) => void
+  ): Promise<Proposal> {
     console.log('📋 Generating proposal using configuration-driven system...');
 
     // Generate proposal metadata
@@ -47,7 +51,7 @@ export class ProposalGenerator {
 
     try {
       // Generate all slides based on configuration
-      const slides = await this.slideGenerator.generateAllSlides(discoveryData, documentContext);
+      const slides = await this.slideGenerator.generateAllSlides(discoveryData, documentContext, progressCallback);
 
       // Map generated slides to proposal sections
       for (const slide of slides) {

@@ -5,30 +5,50 @@ import GenerationStatus from './GenerationStatus';
 import ProposalResult from './ProposalResult';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { DiscoveryData, FileUpload as FileUploadType, Proposal, GenerationStatus as GenerationStatusType } from '../types';
+import { GenerationStatus as GenerationStatusType } from '../types';
 import { ProposalApi } from '../services/api';
+import { WizardProvider } from '../contexts/WizardContext';
+import { useWizardState } from '../hooks/useWizardState';
+import { DiscoveryData } from '../types';
 
-const ProposalGenerator: React.FC = () => {
-  const [discoveryData, setDiscoveryData] = useState<DiscoveryData | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
-  const [uploadedFiles, setUploadedFiles] = useState<FileUploadType[]>([]);
+const ProposalGeneratorContent: React.FC = () => {
+  const {
+    currentStep,
+    discoveryData,
+    selectedTemplateId,
+    uploadedFiles,
+    proposal,
+    downloadUrl,
+    completedSteps,
+    goToStep,
+    updateDiscovery,
+    updateFiles,
+    updateProposal,
+    completeStep,
+    resetWizard,
+    canGoToStep
+  } = useWizardState();
+
   const [generationStatus, setGenerationStatus] = useState<GenerationStatusType>({
     isGenerating: false,
     progress: 0,
     currentStep: ''
   });
-  const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [downloadUrl, setDownloadUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  const handleDiscoverySubmit = (data: DiscoveryData, templateId?: string) => {
-    setDiscoveryData(data);
-    setSelectedTemplateId(templateId);
-    setError('');
+  const handleFilesChange = (files: any[]) => {
+    updateFiles(files);
   };
 
-  const handleFilesChange = (files: FileUploadType[]) => {
-    setUploadedFiles(files);
+  const handleContinueFromDiscovery = (data: DiscoveryData, templateId?: string) => {
+    // updateDiscovery now handles completing step 1 and navigating to step 2
+    updateDiscovery(data, templateId);
+  };
+
+  const handleContinueFromDocuments = async () => {
+    completeStep(2);
+    // Skip step 3 and go directly to generation
+    await handleGenerate();
   };
 
   const handleGenerate = async () => {
@@ -37,48 +57,43 @@ const ProposalGenerator: React.FC = () => {
       return;
     }
 
+    // Prevent multiple simultaneous generations
+    if (generationStatus.isGenerating) {
+      return;
+    }
+
     setGenerationStatus({
       isGenerating: true,
-      progress: 10,
-      currentStep: 'Preparing data...'
+      progress: 5,
+      currentStep: 'Starting generation...'
     });
     setError('');
-    setProposal(null);
-    setDownloadUrl('');
 
     try {
-      // Update progress
-      setGenerationStatus(prev => ({
-        ...prev,
-        progress: 30,
-        currentStep: 'Processing documents...'
-      }));
-
       // Get actual File objects from FileUpload types
       const files = uploadedFiles
         .filter(f => f.status === 'complete')
         .map(f => f.file);
 
-      setGenerationStatus(prev => ({
-        ...prev,
-        progress: 50,
-        currentStep: 'Generating proposal sections...'
-      }));
-
-      // Call API with templateId
-      const response = await ProposalApi.generateProposal(discoveryData, files, selectedTemplateId);
+      // Use SSE-enabled API with real-time progress updates
+      const response = await ProposalApi.generateProposalWithProgress(
+        discoveryData,
+        files,
+        selectedTemplateId,
+        (progressData) => {
+          // Update UI with real-time progress from backend
+          setGenerationStatus(prev => ({
+            ...prev,
+            progress: progressData.progress,
+            currentStep: progressData.message || prev.currentStep,
+            isGenerating: true
+          }));
+        }
+      );
 
       if (response.success && response.proposal) {
-        setGenerationStatus(prev => ({
-          ...prev,
-          progress: 90,
-          currentStep: 'Creating presentation...'
-        }));
-
-        setProposal(response.proposal);
-        if (response.downloadUrl) {
-          setDownloadUrl(response.downloadUrl);
-        }
+        // updateProposal now handles completing step 2 and navigating to step 3
+        updateProposal(response.proposal, response.downloadUrl || '');
 
         setGenerationStatus(prev => ({
           ...prev,
@@ -106,8 +121,7 @@ const ProposalGenerator: React.FC = () => {
     try {
       const filename = downloadUrl.split('/').pop() || 'proposal.pptx';
       const blob = await ProposalApi.downloadPresentation(filename);
-      
-      // Create download link
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -121,43 +135,46 @@ const ProposalGenerator: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
-    setDiscoveryData(null);
-    setUploadedFiles([]);
-    setGenerationStatus({
-      isGenerating: false,
-      progress: 0,
-      currentStep: ''
-    });
-    setProposal(null);
-    setDownloadUrl('');
-    setError('');
+  const handleNewProposal = () => {
+    if (window.confirm('Start a new proposal? This will clear all current data.')) {
+      resetWizard();
+      setGenerationStatus({
+        isGenerating: false,
+        progress: 0,
+        currentStep: ''
+      });
+      setError('');
+    }
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Step Indicator */}
       <Card style={{ backgroundColor: 'var(--primary-white)', border: '1px solid var(--light-gray)' }}>
-        <CardContent 
+        <CardContent
           className="step-indicator-container"
-          style={{ 
-            padding: '32px 24px', 
+          style={{
+            padding: '32px 24px',
             paddingTop: '32px',
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             minHeight: '100px',
             boxSizing: 'border-box'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 'clamp(16px, 4vw, 32px)', flexWrap: 'wrap' }}>
             {[
-              { step: 1, label: 'Discovery', active: !discoveryData, completed: !!discoveryData },
-              { step: 2, label: 'Generate', active: generationStatus.isGenerating, completed: !!proposal },
-              { step: 3, label: 'Results', active: !!proposal, completed: false }
+              { step: 1, label: 'Discovery', active: currentStep === 1, completed: completedSteps.has(1) },
+              { step: 2, label: 'Documents', active: currentStep === 2, completed: completedSteps.has(2) },
+              { step: 3, label: 'Results', active: currentStep === 3, completed: false }
             ].map(({ step, label, active, completed }) => (
-              <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <div 
+              <div
+                key={step}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: canGoToStep(step) ? 'pointer' : 'default' }}
+                onClick={() => canGoToStep(step) && goToStep(step)}
+              >
+                <div
                   style={{
                     width: '40px',
                     height: '40px',
@@ -169,10 +186,10 @@ const ProposalGenerator: React.FC = () => {
                     fontWeight: 'bold',
                     fontFamily: 'var(--font-heading)',
                     transition: 'all 0.3s ease',
-                    backgroundColor: completed 
-                      ? 'var(--primary-blue)' 
-                      : active 
-                      ? 'var(--primary-orange)' 
+                    backgroundColor: completed
+                      ? 'var(--primary-blue)'
+                      : active
+                      ? 'var(--primary-orange)'
                       : 'var(--light-gray)',
                     color: completed || active ? 'var(--primary-white)' : 'var(--medium-gray)',
                     border: `2px solid ${completed || active ? 'transparent' : 'var(--medium-gray)'}`
@@ -180,7 +197,7 @@ const ProposalGenerator: React.FC = () => {
                 >
                   {completed ? '✓' : step}
                 </div>
-                <span 
+                <span
                   style={{
                     fontSize: '14px',
                     fontWeight: '500',
@@ -210,13 +227,13 @@ const ProposalGenerator: React.FC = () => {
         </Card>
       )}
 
-      {/* Discovery Form */}
-      {!discoveryData && (
+      {/* Step 1: Discovery Form */}
+      <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
         <Card style={{ backgroundColor: 'var(--primary-white)', border: '1px solid var(--light-gray)' }}>
           <CardHeader>
-            <CardTitle style={{ 
-              color: 'var(--dark-gray)', 
-              fontFamily: 'var(--font-heading)', 
+            <CardTitle style={{
+              color: 'var(--dark-gray)',
+              fontFamily: 'var(--font-heading)',
               fontWeight: 'var(--weight-semibold)',
               fontSize: 'var(--text-h3)'
             }}>
@@ -227,54 +244,36 @@ const ProposalGenerator: React.FC = () => {
             <p className="mb-6 text-gray-600" style={{ fontFamily: 'var(--font-body)' }}>
               Tell us about your client's business challenge and requirements.
             </p>
-            <DiscoveryForm onSubmit={handleDiscoverySubmit} />
+            <DiscoveryForm onSubmit={handleContinueFromDiscovery} {...(discoveryData && { initialData: discoveryData })} />
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {/* Generate Proposal */}
-      {discoveryData && !generationStatus.isGenerating && !proposal && (
+      {/* Step 2: Document Upload */}
+      <div style={{ display: currentStep === 2 && !generationStatus.isGenerating ? 'block' : 'none' }}>
         <Card style={{ backgroundColor: 'var(--primary-white)', border: '1px solid var(--light-gray)' }}>
           <CardHeader>
-            <CardTitle style={{ 
-              color: 'var(--dark-gray)', 
-              fontFamily: 'var(--font-heading)', 
+            <CardTitle style={{
+              color: 'var(--dark-gray)',
+              fontFamily: 'var(--font-heading)',
               fontWeight: 'var(--weight-semibold)',
               fontSize: 'var(--text-h3)'
             }}>
-              Generate Proposal
+              Supporting Documents
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="mb-6 text-gray-600" style={{ fontFamily: 'var(--font-body)' }}>
-              Ready to generate your proposal! Optionally add supporting documents to enhance the quality.
+              Add relevant files to enhance proposal accuracy (optional).
             </p>
-            
-            {/* Optional File Upload Section */}
-            <div style={{ 
-              backgroundColor: 'var(--bg-light)', 
-              padding: '20px', 
-              borderRadius: '8px', 
+
+            <div style={{
+              backgroundColor: 'var(--bg-light)',
+              padding: '20px',
+              borderRadius: '8px',
               marginBottom: '24px',
               border: '1px dashed var(--medium-gray)'
             }}>
-              <h4 style={{ 
-                margin: '0 0 12px 0',
-                fontSize: '16px',
-                fontWeight: 'var(--weight-semibold)',
-                color: 'var(--dark-gray)',
-                fontFamily: 'var(--font-heading)'
-              }}>
-                Supporting Documents (Optional)
-              </h4>
-              <p style={{ 
-                margin: '0 0 16px 0',
-                fontSize: '14px',
-                color: 'var(--medium-gray)',
-                fontFamily: 'var(--font-body)'
-              }}>
-                Add relevant files to enhance proposal accuracy
-              </p>
               <FileUpload
                 files={uploadedFiles}
                 onChange={handleFilesChange}
@@ -282,41 +281,42 @@ const ProposalGenerator: React.FC = () => {
                 acceptedTypes={['.pdf', '.docx', '.txt', '.md']}
               />
             </div>
-            
-            <div className="flex flex-col gap-4">
+
+            <div className="flex gap-4">
               <Button
-                onClick={handleGenerate}
-                size="lg"
-                style={{
-                  backgroundColor: 'var(--primary-blue)',
-                  color: 'var(--primary-white)',
-                  fontFamily: 'var(--font-heading)',
-                  width: '100%',
-                  padding: '16px'
-                }}
-              >
-                {uploadedFiles.length > 0 ? `GENERATE PROPOSAL (${uploadedFiles.length} document${uploadedFiles.length > 1 ? 's' : ''})` : 'GENERATE PROPOSAL'}
-              </Button>
-              
-              <Button
-                onClick={handleReset}
+                onClick={() => goToStep(1)}
                 variant="outline"
                 size="lg"
                 style={{
                   borderColor: 'var(--primary-blue)',
                   color: 'var(--primary-blue)',
                   fontFamily: 'var(--font-heading)',
-                  width: '100%'
+                  flex: 1
                 }}
               >
-                RESET
+                BACK
+              </Button>
+              <Button
+                onClick={handleContinueFromDocuments}
+                disabled={generationStatus.isGenerating}
+                size="lg"
+                style={{
+                  backgroundColor: 'var(--primary-blue)',
+                  color: 'var(--primary-white)',
+                  fontFamily: 'var(--font-heading)',
+                  flex: 1,
+                  opacity: generationStatus.isGenerating ? 0.5 : 1,
+                  cursor: generationStatus.isGenerating ? 'not-allowed' : 'pointer'
+                }}
+              >
+                CONTINUE
               </Button>
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {/* Generation Status */}
+      {/* Generation Status (shown while generating) */}
       {generationStatus.isGenerating && (
         <Card style={{ backgroundColor: 'var(--primary-white)', border: '1px solid var(--light-gray)' }}>
           <CardContent className="pt-6">
@@ -325,16 +325,88 @@ const ProposalGenerator: React.FC = () => {
         </Card>
       )}
 
-      {/* Results */}
-      {proposal && (
-        <ProposalResult
-          proposal={proposal}
-          downloadUrl={downloadUrl}
-          onDownload={handleDownload}
-          onReset={handleReset}
-        />
-      )}
+      {/* Step 3: Results */}
+      <div style={{ display: currentStep === 3 && !generationStatus.isGenerating ? 'block' : 'none' }}>
+        {proposal && (
+          <div>
+            <ProposalResult
+              proposal={proposal}
+              downloadUrl={downloadUrl}
+              onDownload={handleDownload}
+              onReset={handleNewProposal}
+            />
+            <div className="mt-6 space-y-4">
+              {/* Edit Options */}
+              <Card style={{ backgroundColor: 'var(--bg-light)', border: '1px solid var(--light-gray)' }}>
+                <CardContent className="pt-6">
+                  <h4 style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontWeight: 'var(--weight-semibold)',
+                    fontSize: '16px',
+                    marginBottom: '12px',
+                    color: 'var(--dark-gray)',
+                    textAlign: 'center'
+                  }}>
+                    Want to regenerate with different inputs?
+                  </h4>
+                  <div className="flex gap-3 justify-center">
+                    <Button
+                      onClick={() => goToStep(1)}
+                      variant="outline"
+                      size="lg"
+                      style={{
+                        borderColor: 'var(--primary-blue)',
+                        color: 'var(--primary-blue)',
+                        fontFamily: 'var(--font-heading)'
+                      }}
+                    >
+                      EDIT DISCOVERY DATA
+                    </Button>
+                    <Button
+                      onClick={() => goToStep(2)}
+                      variant="outline"
+                      size="lg"
+                      style={{
+                        borderColor: 'var(--primary-blue)',
+                        color: 'var(--primary-blue)',
+                        fontFamily: 'var(--font-heading)'
+                      }}
+                    >
+                      EDIT DOCUMENTS
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* New Proposal */}
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleNewProposal}
+                  variant="outline"
+                  size="lg"
+                  style={{
+                    borderColor: 'var(--medium-gray)',
+                    color: 'var(--medium-gray)',
+                    fontFamily: 'var(--font-heading)'
+                  }}
+                >
+                  START NEW PROPOSAL
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
+  );
+};
+
+// Wrap the component with WizardProvider
+const ProposalGenerator: React.FC = () => {
+  return (
+    <WizardProvider>
+      <ProposalGeneratorContent />
+    </WizardProvider>
   );
 };
 
