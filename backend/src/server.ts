@@ -11,7 +11,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { validateDiscoveryData } from './middleware/validation';
 import { ProposalController } from './controllers/proposalController';
 import { DocumentService } from './services/documentService';
-import { ProposalService } from './services/proposalService';
+import { ProposalOrchestrator } from './services/proposalOrchestrator';
 import { PPTXService } from './services/pptxService';
 
 // Load environment variables
@@ -80,13 +80,13 @@ const upload = multer({
 
 // Initialize services
 const documentService = new DocumentService();
-const proposalService = new ProposalService();
+const proposalOrchestrator = new ProposalOrchestrator();
 const pptxService = new PPTXService();
 
 // Initialize controller
 const proposalController = new ProposalController(
   documentService,
-  proposalService,
+  proposalOrchestrator,
   pptxService
 );
 
@@ -96,7 +96,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    claudeModel: proposalService.getCurrentModel(),
+    claudeModel: proposalOrchestrator.getCurrentModel(),
     environment: process.env.NODE_ENV || 'development'
   });
 });
@@ -136,7 +136,7 @@ app.get('/api/templates',
 // Debug endpoint to refresh Claude models
 app.post('/api/debug/refresh-models', async (req, res) => {
   try {
-    const newModel = await proposalService.refreshBestModel();
+    const newModel = await proposalOrchestrator.refreshBestModel();
     res.json({
       success: true,
       message: 'Models refreshed',

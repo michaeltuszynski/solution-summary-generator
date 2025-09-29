@@ -1,0 +1,259 @@
+# Manufacturing Industry Template Configuration
+template:
+  id: "manufacturing"
+  name: "Manufacturing Digital Transformation"
+  description: "Industry 4.0 focused template for manufacturing organizations"
+  file: "template.pptx"
+
+  # Template selection criteria
+  industries: ["Manufacturing"]
+  project_types: ["all"]
+
+  # Global placeholders
+  global_mappings:
+    COMPANY_NAME: "discoveryData.companyName"
+    PROJECT_TYPE: "discoveryData.projectType"
+    DATE: "generated"
+    INDUSTRY: "Manufacturing"
+    FOCUS_AREA: "Industry 4.0/Smart Manufacturing"
+
+version: "1.0"
+metadata:
+  author: "Presidio Manufacturing Practice"
+  description: "Manufacturing template with OT/IT convergence and efficiency focus"
+  created: "2024-11-27"
+
+# Global settings
+defaults:
+  model: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  max_tokens: 2000
+  temperature: 0.7
+
+# Manufacturing-specific compliance
+compliance:
+  risky_terms:
+    - "zero downtime"
+    - "eliminate all defects"
+    - "guarantee productivity"
+    - "100% efficiency"
+    - "prevent all failures"
+  qualifying_terms:
+    - "designed to improve OEE"
+    - "anticipated efficiency gains"
+    - "projected to reduce downtime"
+    - "intended to optimize production"
+
+# Manufacturing-specific slides
+slides:
+  - id: "digital_transformation"
+    enabled: true
+    order: 1
+    title: "Industry 4.0 Transformation"
+    placeholder_mapping:
+      content: "DIGITAL_CONTENT"
+
+    prompt:
+      template: |
+        You are a senior manufacturing solution architect at Presidio specializing in Industry 4.0.
+
+        Client: {{companyName}} (Manufacturing)
+        Challenge: {{businessChallenge}}
+        Current Systems: {{techStack}}
+
+        Generate an Industry 4.0 Transformation slide:
+        • Smart factory and IIoT implementation
+        • OT/IT systems convergence strategy
+        • Digital twin and simulation capabilities
+        • Predictive maintenance using AI/ML
+        • Real-time production monitoring
+        • Supply chain visibility and integration
+
+        MANUFACTURING FOCUS:
+        - Reference Industry 4.0 maturity levels
+        - Include OEE improvement strategies
+        - Address cybersecurity for OT environments
+        - Consider MES/ERP integration
+
+        Format: {{maxBullets}} bullets, {{maxWordsPerBullet}} words each
+        Focus on measurable operational improvements
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+
+    validation:
+      min_word_count: 100
+      max_word_count: 280
+
+  - id: "operational_excellence"
+    enabled: true
+    order: 2
+    title: "Operational Excellence Strategy"
+    placeholder_mapping:
+      content: "OPERATIONS_CONTENT"
+
+    prompt:
+      template: |
+        Operational excellence approach for {{companyName}}:
+
+        Key areas:
+        • Lean manufacturing digitalization
+        • Quality management system integration
+        • Production planning optimization
+        • Inventory and warehouse automation
+        • Energy management and sustainability
+        • Worker safety and ergonomics
+
+        Current environment: {{techStack}}
+
+        FOCUS ON:
+        - Continuous improvement methodologies
+        - Real-time KPI tracking
+        - Waste reduction strategies
+        - Throughput optimization
+
+        Format: {{maxBullets}} operational bullets
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 14
+
+  - id: "smart_factory"
+    enabled: true
+    order: 3
+    title: "Smart Factory Architecture"
+    placeholder_mapping:
+      content: "SMART_FACTORY_CONTENT"
+
+    prompt:
+      template: |
+        Smart factory solution for {{companyName}}:
+
+        Technical components:
+        • Industrial IoT sensor deployment
+        • Edge computing for real-time analytics
+        • SCADA/HMI modernization
+        • MES and ERP integration
+        • Advanced analytics and AI/ML platform
+        • Cybersecurity for OT networks
+
+        Architecture considerations:
+        - ISA-95 automation pyramid
+        - OPC UA connectivity standards
+        - Time-sensitive networking (TSN)
+        - Cloud vs edge processing
+
+        Format: {{maxBullets}} architecture bullets
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+
+  - id: "supply_chain"
+    enabled: true
+    order: 4
+    title: "Supply Chain Optimization"
+    placeholder_mapping:
+      content: "SUPPLY_CHAIN_CONTENT"
+
+    prompt:
+      template: |
+        Supply chain transformation for {{companyName}}:
+
+        Focus areas:
+        • End-to-end supply chain visibility
+        • Demand forecasting with AI
+        • Supplier collaboration portals
+        • Transportation optimization
+        • Warehouse automation integration
+        • Track and trace capabilities
+
+        Consider:
+        - Multi-tier supplier management
+        - Just-in-time optimization
+        - Risk management strategies
+        - Sustainability tracking
+
+        Format: {{maxBullets}} supply chain bullets
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 12
+
+  - id: "manufacturing_outcomes"
+    enabled: true
+    order: 6
+    title: "Operational & Business Outcomes"
+    placeholder_mapping:
+      content: "MFG_OUTCOMES"
+
+    prompt:
+      template: |
+        Generate manufacturing outcomes for {{companyName}}:
+
+        Key metrics:
+        • OEE (Overall Equipment Effectiveness) improvement
+        • Reduction in unplanned downtime
+        • Quality defect rate reduction
+        • Inventory turnover optimization
+        • Lead time reduction
+        • Energy consumption savings
+        • Labor productivity gains
+
+        Use manufacturing KPIs:
+        - OEE percentage improvements
+        - MTBF/MTTR metrics
+        - First Pass Yield (FPY)
+        - Cycle time reduction
+        - Cost per unit improvements
+
+        Avoid absolute guarantees.
+        Use: "projected", "designed to achieve", "anticipated"
+
+        Format: {{maxBullets}} measurable outcomes with percentages
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+
+    validation:
+      should_contain_numbers: true
+      min_word_count: 100
+      max_word_count: 250
+
+# Manufacturing context
+manufacturing_context:
+  standards:
+    - "ISA-95"
+    - "ISA-88"
+    - "IEC 62443 (OT Security)"
+    - "ISO 9001"
+    - "Six Sigma"
+    - "Lean Manufacturing"
+
+  technologies:
+    - "OPC UA"
+    - "MQTT"
+    - "Modbus"
+    - "PROFINET"
+    - "EtherNet/IP"
+    - "Time-Sensitive Networking"
+
+  common_systems:
+    - "SAP S/4HANA"
+    - "Oracle ERP Cloud"
+    - "Microsoft Dynamics 365"
+    - "Siemens MES"
+    - "Rockwell FactoryTalk"
+    - "Wonderware"
+    - "GE Digital"
+
+  key_metrics:
+    - "OEE (Availability × Performance × Quality)"
+    - "MTBF (Mean Time Between Failures)"
+    - "MTTR (Mean Time To Repair)"
+    - "First Pass Yield"
+    - "Cycle Time"
+    - "Takt Time"
+    - "Inventory Turns"
+    - "Schedule Adherence"

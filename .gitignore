@@ -17,7 +17,9 @@ dist/
 
 # Local env files
 .env
-.env.*
+.env.local
+.env.*.local
+!.env.example
 
 # Editor directories and files
 .vscode/
@@ -55,3 +57,9 @@ claude.json
 *.claude-backup
 .claude-session/
 .claude-cache/
+
+# Temporary upload and generated files
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/generated/*
+!backend/generated/.gitkeep

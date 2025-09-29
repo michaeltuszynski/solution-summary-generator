@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { DiscoveryData, GenerationResponse } from '../types';
 import { DocumentService } from '../services/documentService';
-import { ProposalService } from '../services/proposalService';
+import { ProposalOrchestrator } from '../services/proposalOrchestrator';
 import { PPTXService } from '../services/pptxService';
 import fs from 'fs';
 import path from 'path';
@@ -9,7 +9,7 @@ import path from 'path';
 export class ProposalController {
   constructor(
     private documentService: DocumentService,
-    private proposalService: ProposalService,
+    private proposalOrchestrator: ProposalOrchestrator,
     private pptxService: PPTXService
   ) {}
 
@@ -37,7 +37,7 @@ export class ProposalController {
       }
 
       // Generate proposal content with optional templateId
-      const proposal = await this.proposalService.generateProposal(discoveryData, documentContext, templateId);
+      const proposal = await this.proposalOrchestrator.generateProposal(discoveryData, documentContext, templateId);
 
       // Generate PPTX presentation
       const pptxPath = await this.pptxService.createPresentation(proposal, discoveryData);
@@ -130,7 +130,7 @@ export class ProposalController {
 
   async getTemplates(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const templates = this.proposalService.getAvailableTemplates();
+      const templates = this.proposalOrchestrator.getAvailableTemplates();
 
       // Map to frontend-friendly format
       const formattedTemplates = templates.map(template => ({

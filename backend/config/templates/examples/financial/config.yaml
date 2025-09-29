@@ -1,0 +1,230 @@
+# Financial Services Template Configuration
+template:
+  id: "financial"
+  name: "Financial Services Solution Summary"
+  description: "Compliance-focused template for banks and financial institutions"
+  file: "template.pptx"
+
+  # Template selection criteria
+  industries: ["Financial Services"]
+  project_types: ["all"]
+
+  # Global placeholders
+  global_mappings:
+    COMPANY_NAME: "discoveryData.companyName"
+    PROJECT_TYPE: "discoveryData.projectType"
+    DATE: "generated"
+    INDUSTRY: "Financial Services"
+    REGULATORY_FRAMEWORK: "SOX/PCI-DSS/Basel III"
+
+version: "1.0"
+metadata:
+  author: "Presidio Financial Services Practice"
+  description: "Financial services template with regulatory compliance focus"
+  created: "2024-11-27"
+
+# Global settings
+defaults:
+  model: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  max_tokens: 2000
+  temperature: 0.5  # Lower temperature for accuracy in financial context
+
+# Financial-specific compliance
+compliance:
+  risky_terms:
+    - "guarantee returns"
+    - "eliminate all risks"
+    - "ensure compliance"
+    - "prevent all fraud"
+    - "100% secure transactions"
+  required_terms:
+    - "regulatory alignment"
+    - "risk management"
+    - "audit trail"
+    - "SOX compliance"
+  qualifying_terms:
+    - "designed to support regulatory requirements"
+    - "aligned with banking regulations"
+    - "intended to enhance controls"
+    - "structured to manage risk"
+
+# Financial services-specific slides
+slides:
+  - id: "regulatory_compliance"
+    enabled: true
+    order: 1
+    title: "Regulatory Compliance Framework"
+    placeholder_mapping:
+      content: "REGULATORY_CONTENT"
+
+    prompt:
+      template: |
+        You are a senior financial services solution architect at Presidio.
+
+        Client: {{companyName}} (Financial Institution)
+        Challenge: {{businessChallenge}}
+        Systems: {{techStack}}
+
+        Generate a Regulatory Compliance Framework slide:
+        • SOX Section 404 internal controls
+        • PCI-DSS requirements for payment processing
+        • Basel III capital and liquidity requirements
+        • AML/KYC compliance measures
+        • GDPR/CCPA data privacy requirements
+        • Federal Reserve and OCC examination readiness
+
+        CRITICAL FINANCIAL REQUIREMENTS:
+        - Reference specific regulations
+        - Include audit and control measures
+        - Address data lineage and governance
+        - Consider real-time monitoring needs
+
+        Format: {{maxBullets}} bullets, {{maxWordsPerBullet}} words each
+        Use: "designed to meet", "aligned with regulatory requirements"
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 14
+
+    validation:
+      required_keywords: ["compliance", "regulatory", "audit"]
+      min_word_count: 100
+      max_word_count: 280
+
+  - id: "risk_management"
+    enabled: true
+    order: 2
+    title: "Risk Management & Controls"
+    placeholder_mapping:
+      content: "RISK_CONTENT"
+
+    prompt:
+      template: |
+        Financial risk management approach for {{companyName}}:
+
+        Address:
+        • Credit risk assessment and monitoring
+        • Market risk analytics and reporting
+        • Operational risk controls
+        • Fraud detection and prevention
+        • Cybersecurity threat management
+        • Third-party risk management
+
+        Current environment: {{techStack}}
+
+        REQUIREMENTS:
+        - Include real-time monitoring capabilities
+        - Address regulatory reporting needs
+        - Focus on control effectiveness
+        - Consider stress testing requirements
+
+        Format: {{maxBullets}} risk-focused bullets
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 15
+
+  - id: "core_banking_integration"
+    enabled: true
+    order: 3
+    title: "Core Systems Modernization"
+    placeholder_mapping:
+      content: "CORE_BANKING_CONTENT"
+
+    prompt:
+      template: |
+        Core banking transformation for {{companyName}}:
+
+        Focus areas:
+        • Core banking platform modernization
+        • Real-time payment processing (RTP/FedNow)
+        • API-based integration architecture
+        • Mobile and digital channel enablement
+        • Data warehouse and analytics platform
+        • Legacy system migration approach
+
+        Consider:
+        - 24/7 availability requirements
+        - Transaction volume scalability
+        - Regulatory reporting integration
+        - Customer data protection
+
+        Format: {{maxBullets}} technical bullets
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+
+  - id: "financial_outcomes"
+    enabled: true
+    order: 5
+    title: "Business & Operational Outcomes"
+    placeholder_mapping:
+      content: "FINANCIAL_OUTCOMES"
+
+    prompt:
+      template: |
+        Generate financial services outcomes for {{companyName}}:
+
+        Key areas:
+        • Regulatory compliance improvements
+        • Risk-adjusted returns optimization
+        • Operational efficiency gains
+        • Customer experience enhancements
+        • Fraud reduction metrics
+        • Audit finding reductions
+        • Processing time improvements
+
+        Use financial metrics:
+        - Basis points improvement
+        - STP (Straight Through Processing) rates
+        - False positive reduction percentages
+        - Compliance cost savings
+        - NPS/CSAT improvements
+
+        Avoid absolute guarantees about returns or risk elimination.
+        Use: "anticipated", "projected", "designed to achieve"
+
+        Format: {{maxBullets}} measurable outcomes
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 15
+
+    validation:
+      should_contain_numbers: true
+      min_word_count: 100
+      max_word_count: 250
+
+# Financial services context
+financial_context:
+  regulations:
+    - "Sarbanes-Oxley (SOX)"
+    - "Payment Card Industry DSS"
+    - "Basel III/IV"
+    - "Dodd-Frank"
+    - "MiFID II"
+    - "GDPR/CCPA"
+
+  standards:
+    - "ISO 20022"
+    - "SWIFT"
+    - "FIX Protocol"
+    - "XBRL"
+    - "Open Banking APIs"
+
+  common_systems:
+    - "FIS"
+    - "Fiserv"
+    - "Jack Henry"
+    - "Temenos"
+    - "Oracle FLEXCUBE"
+    - "SAP Banking"
+
+  key_metrics:
+    - "ROE/ROA"
+    - "Cost-to-Income Ratio"
+    - "Net Interest Margin"
+    - "NPL Ratio"
+    - "CAR (Capital Adequacy Ratio)"
+    - "LCR (Liquidity Coverage Ratio)"

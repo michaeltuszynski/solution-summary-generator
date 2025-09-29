@@ -5,7 +5,7 @@
 ### Technology Stack
 - **Backend**: Node.js 18+ with Express.js, TypeScript 5.2 (strict mode)
 - **Frontend**: React 18.2 with TypeScript 4.9 (strict mode)
-- **AI Engine**: Anthropic Claude API (with intelligent model selection)
+- **AI Engine**: AWS Bedrock with Claude models (intelligent model selection)
 - **Document Processing**: Docxtemplater, PizZip, Mammoth, pdf-parse
 - **Styling**: Tailwind CSS 3.3 with custom Presidio design variables
 - **Security**: Helmet, CORS, express-rate-limit
@@ -20,9 +20,15 @@ solution-summary-generator/
 │   │   ├── controllers/        # Request handlers
 │   │   │   └── proposalController.ts  # Main proposal generation controller
 │   │   ├── services/           # Business logic layer
-│   │   │   ├── proposalService.ts     # Claude API integration & content generation
+│   │   │   ├── bedrockService.ts      # AWS Bedrock integration for Claude models
+│   │   │   ├── proposalOrchestrator.ts # Template selection and orchestration
+│   │   │   ├── proposalGenerator.ts    # Core generation engine
 │   │   │   ├── documentService.ts     # File processing (PDF/DOCX/TXT/MD)
-│   │   │   └── pptxService.ts         # PowerPoint generation with templates
+│   │   │   ├── pptxService.ts         # PowerPoint generation with templates
+│   │   │   ├── templateSelectionService.ts # Template management and selection
+│   │   │   ├── slideGeneratorService.ts    # Individual slide generation
+│   │   │   ├── slideConfigService.ts       # Configuration management
+│   │   │   └── promptTemplateEngine.ts     # Mustache template processing
 │   │   ├── middleware/         # Express middleware
 │   │   │   ├── errorHandler.ts        # Global error handling
 │   │   │   └── validation.ts          # Joi validation schemas
@@ -81,10 +87,22 @@ solution-summary-generator/
 
 ### Key Services Detailed
 
-#### ProposalService (backend/src/services/proposalService.ts)
+#### BedrockService (backend/src/services/bedrockService.ts)
+- **AWS Bedrock Integration**: Accesses Claude models through AWS Bedrock
 - **Model Selection**: Tests available Claude models in priority order
-  - Tries: claude-sonnet-4, claude-3-5-sonnet, claude-3-sonnet, claude-3-haiku
+  - Primary: anthropic.claude-3-5-sonnet-20241022-v2:0
+  - Fallbacks: claude-3.5-sonnet-v1, claude-3-sonnet, claude-3-haiku
   - Falls back gracefully if preferred models unavailable
+
+#### ProposalOrchestrator (backend/src/services/proposalOrchestrator.ts)
+- **Orchestration**: Manages template selection and generation workflow
+- **Template Support**: Selects appropriate template based on industry/project type
+- **Delegation**: Creates and manages ProposalGenerator instances
+
+#### ProposalGenerator (backend/src/services/proposalGenerator.ts)
+- **Core Engine**: Actual proposal content generation
+- **Configuration-Driven**: Works with YAML configuration files
+- **Slide Processing**: Generates individual slides based on templates
 - **Section Generation**: Creates 4 proposal sections
   - Overview: Executive summary with strategic alignment
   - Solution & Approach: Technical architecture and methodology
@@ -218,6 +236,8 @@ const upload = multer({
   - Body: multipart/form-data with discoveryData JSON and optional documents
   - Returns: Proposal object with sections, confidence scores, and download URL
 - `GET /api/proposals/download/:filename` - Download generated PPTX
+- `GET /api/proposals/:id/status` - Get proposal generation status
+- `GET /api/templates` - Get available proposal templates
 - `GET /api/health` - Health check with model info
 - `POST /api/debug/refresh-models` - Refresh Claude model selection
 
@@ -278,7 +298,10 @@ interface ProposalSection {
 
 ### Backend (.env)
 ```env
-ANTHROPIC_API_KEY=sk-ant-xxx          # Required: Claude API key
+# AWS Bedrock Configuration (uses IAM role or AWS credentials)
+AWS_REGION=us-east-1                  # AWS region for Bedrock
+AWS_ACCESS_KEY_ID=xxx                 # Optional: If not using IAM role
+AWS_SECRET_ACCESS_KEY=xxx             # Optional: If not using IAM role
 NODE_ENV=development                   # Environment mode
 PORT=3001                              # Server port
 FRONTEND_URL=http://localhost:3000    # CORS origin
@@ -293,11 +316,14 @@ REACT_APP_API_URL=http://localhost:3001/api  # Backend API URL
 
 ### Backend
 - **express**: 4.18.2 - Web framework
-- **axios**: 1.6.0 - HTTP client for Claude API
+- **@aws-sdk/client-bedrock-runtime**: 3.895.0 - AWS Bedrock SDK for Claude
+- **axios**: 1.6.0 - HTTP client
 - **docxtemplater**: 3.66.3 - PPTX template processing
 - **pizzip**: 3.2.0 - ZIP file manipulation
 - **multer**: 1.4.5 - File upload handling
-- **joi**: 17.11.0 - Schema validation
+- **joi**: 17.13.3 - Schema validation
+- **mustache**: 4.2.0 - Template engine for prompts
+- **yaml**: 2.8.1 - YAML configuration parsing
 - **helmet**: 7.1.0 - Security headers
 - **cors**: 2.8.5 - Cross-origin support
 - **express-rate-limit**: 7.1.5 - Rate limiting
@@ -437,6 +463,91 @@ serve -s build
 - **Quality Improvement**: Consistent RAP compliance
 - **Scalability**: Junior staff can create senior-level proposals
 - **ROI**: Immediate through time savings and quality improvement
+
+## 🎨 Template Customization
+
+### Overview
+The Solution Summary Generator uses a configuration-driven template system that allows for easy customization of proposals based on industry, project type, and client needs.
+
+### Template System Architecture
+Templates are stored in `/backend/config/templates/` with the following structure:
+```
+backend/config/templates/
+├── default/              # Standard template
+│   ├── config.yaml      # Template configuration
+│   └── template.pptx    # PowerPoint file
+├── examples/            # Industry-specific examples
+│   ├── healthcare/      # Healthcare template
+│   ├── financial/       # Financial services template
+│   └── manufacturing/   # Manufacturing template
+```
+
+### Quick Start - Customizing Templates
+
+1. **Modify Existing Templates**
+   - Edit `/backend/config/templates/default/config.yaml`
+   - Adjust prompts, variables, and validation rules
+   - See [Template Quick Reference](docs/TEMPLATE_QUICK_REFERENCE.md) for syntax
+
+2. **Create Industry-Specific Templates**
+   ```bash
+   # Copy an example template
+   cp -r backend/config/templates/examples/healthcare backend/config/templates/healthcare
+
+   # Customize the configuration
+   edit backend/config/templates/healthcare/config.yaml
+
+   # Test your template
+   npm run generate -- --template=healthcare --test
+   ```
+
+3. **Key Customization Points**
+   - **Prompts**: Tailor AI instructions for specific industries
+   - **Variables**: Control formatting (bullets, word counts)
+   - **Compliance**: Define risky/required terms
+   - **Validation**: Set content quality thresholds
+
+### Template Documentation
+
+- **[Template Iteration Guide](docs/TEMPLATE_ITERATION_GUIDE.md)** - Comprehensive guide for template customization
+  - Input mapping and data flow
+  - Prompt engineering best practices
+  - Industry-specific adaptations
+  - Testing and validation workflows
+  - Troubleshooting common issues
+
+- **[Template Quick Reference](docs/TEMPLATE_QUICK_REFERENCE.md)** - One-page reference card
+  - Variable syntax and common patterns
+  - Validation rules and scoring
+  - Quick fixes for common problems
+  - Testing commands
+
+- **[Example Templates](backend/config/templates/examples/README.md)** - Industry samples
+  - Healthcare (HIPAA compliance focus)
+  - Financial Services (regulatory emphasis)
+  - Manufacturing (Industry 4.0/OT focus)
+
+### Template Variables (Mustache Syntax)
+
+| Variable | Description | Example Usage |
+|----------|-------------|---------------|
+| `{{companyName}}` | Client company | `For {{companyName}}'s needs...` |
+| `{{industry}}` | Industry vertical | `{{#isHealthcare}}HIPAA focus{{/isHealthcare}}` |
+| `{{businessChallenge}}` | Problem statement | `Addressing: {{businessChallenge}}` |
+| `{{maxBullets}}` | Bullet limit | `Maximum {{maxBullets}} points` |
+
+### Testing Templates
+
+```bash
+# Validate template syntax
+npm run validate:template -- --template=default
+
+# Generate test output
+npm run generate -- --template=healthcare --company="Test Corp" --test
+
+# Compare template outputs
+npm run compare -- --baseline=default --variant=healthcare
+```
 
 ## 📚 Additional Resources
 

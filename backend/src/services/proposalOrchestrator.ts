@@ -1,14 +1,15 @@
 import { DiscoveryData, Proposal } from '../types';
-import { ProposalServiceV2 } from './proposalServiceV2';
+import { ProposalGenerator } from './proposalGenerator';
 import { TemplateSelectionService, TemplateSelectionCriteria } from './templateSelectionService';
 import fs from 'fs';
 import path from 'path';
 
 /**
- * ProposalService - Configuration-driven proposal generation with template selection
+ * ProposalOrchestrator - Orchestrates proposal generation by selecting appropriate templates
+ * and delegating to the generation engine
  */
-export class ProposalService {
-  private v2Service: ProposalServiceV2 | null = null;
+export class ProposalOrchestrator {
+  private generator: ProposalGenerator | null = null;
   private templateService: TemplateSelectionService;
   private currentTemplateId: string | null = null;
 
@@ -31,8 +32,8 @@ export class ProposalService {
 
       console.log(`🎯 Using template: ${selectedTemplate.name} (${selectedTemplate.id})`);
 
-      // Initialize V2 service with selected template's configuration
-      this.v2Service = new ProposalServiceV2(selectedTemplate.configPath, selectedTemplate.templatePath);
+      // Initialize generator with selected template's configuration
+      this.generator = new ProposalGenerator(selectedTemplate.configPath, selectedTemplate.templatePath);
     } catch (error: any) {
       console.error('❌ Failed to initialize template:', error.message);
 
@@ -40,7 +41,7 @@ export class ProposalService {
       const legacyConfigPath = path.join(__dirname, '..', '..', 'config', 'slides.yaml');
       if (fs.existsSync(legacyConfigPath)) {
         console.log('📋 Falling back to legacy configuration');
-        this.v2Service = new ProposalServiceV2(legacyConfigPath);
+        this.generator = new ProposalGenerator(legacyConfigPath);
       } else {
         throw new Error('No configuration available for proposal generation');
       }
@@ -66,42 +67,42 @@ export class ProposalService {
       this.initializeWithTemplate(selectedTemplate.id);
     }
 
-    if (!this.v2Service) {
-      throw new Error('Proposal service not initialized');
+    if (!this.generator) {
+      throw new Error('Proposal generator not initialized');
     }
 
-    return this.v2Service.generateProposal(discoveryData, documentContext);
+    return this.generator.generateProposal(discoveryData, documentContext);
   }
 
   /**
    * Refresh configuration (reload from file)
    */
   async refreshBestModel(): Promise<string> {
-    if (!this.v2Service) {
-      throw new Error('Proposal service not initialized');
+    if (!this.generator) {
+      throw new Error('Proposal generator not initialized');
     }
-    return await this.v2Service.refreshConfiguration();
+    return await this.generator.refreshConfiguration();
   }
 
   /**
    * Get current model being used (from configuration)
    */
   getCurrentModel(): string {
-    if (!this.v2Service) {
-      throw new Error('Proposal service not initialized');
+    if (!this.generator) {
+      throw new Error('Proposal generator not initialized');
     }
-    return this.v2Service.getCurrentModel();
+    return this.generator.getCurrentModel();
   }
 
   /**
    * Get configuration status
    */
   getConfigurationStatus(): any {
-    if (!this.v2Service) {
-      throw new Error('Proposal service not initialized');
+    if (!this.generator) {
+      throw new Error('Proposal generator not initialized');
     }
     return {
-      ...this.v2Service.getConfigurationStatus(),
+      ...this.generator.getConfigurationStatus(),
       currentTemplate: this.currentTemplateId,
       availableTemplates: this.templateService.getAvailableTemplates().map(t => ({
         id: t.id,
@@ -116,10 +117,10 @@ export class ProposalService {
    * Validate configuration file
    */
   validateConfiguration(configPath?: string): { valid: boolean; error?: string } {
-    if (!this.v2Service) {
-      throw new Error('Proposal service not initialized');
+    if (!this.generator) {
+      throw new Error('Proposal generator not initialized');
     }
-    return this.v2Service.validateConfiguration(configPath);
+    return this.generator.validateConfiguration(configPath);
   }
 
   /**
@@ -130,20 +131,20 @@ export class ProposalService {
     discoveryData: DiscoveryData,
     documentContext: string = ''
   ): Promise<any> {
-    if (!this.v2Service) {
-      throw new Error('Proposal service not initialized');
+    if (!this.generator) {
+      throw new Error('Proposal generator not initialized');
     }
-    return this.v2Service.previewSlide(slideId, discoveryData, documentContext);
+    return this.generator.previewSlide(slideId, discoveryData, documentContext);
   }
 
   /**
    * Get list of available slides from configuration
    */
   getAvailableSlides(): any[] {
-    if (!this.v2Service) {
-      throw new Error('Proposal service not initialized');
+    if (!this.generator) {
+      throw new Error('Proposal generator not initialized');
     }
-    return this.v2Service.getAvailableSlides();
+    return this.generator.getAvailableSlides();
   }
 
   /**

@@ -5,9 +5,10 @@ import { SlideConfigService } from './slideConfigService';
 import { PPTXService } from './pptxService';
 
 /**
- * Refactored ProposalService that uses configuration-driven slide generation
+ * Core proposal generation engine that processes templates
+ * and generates content via AWS Bedrock
  */
-export class ProposalServiceV2 {
+export class ProposalGenerator {
   private slideGenerator: SlideGeneratorService;
   private configService: SlideConfigService;
   private pptxService: PPTXService | null = null;

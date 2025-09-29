@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { ProposalService } from './services/proposalService';
+import { ProposalOrchestrator } from './services/proposalOrchestrator';
 import { DiscoveryData } from './types';
 
 // Load environment variables
@@ -11,17 +11,17 @@ async function testConfigurationDrivenSystem() {
   console.log('========================================\n');
 
   try {
-    // Initialize the service (will automatically use V2 if config exists)
-    const proposalService = new ProposalService();
+    // Initialize the orchestrator (will automatically use generator if config exists)
+    const proposalOrchestrator = new ProposalOrchestrator();
 
     // Get configuration status
-    const configStatus = proposalService.getConfigurationStatus();
+    const configStatus = proposalOrchestrator.getConfigurationStatus();
     console.log('📋 Configuration Status:');
     console.log(JSON.stringify(configStatus, null, 2));
     console.log();
 
     // Check current model
-    const currentModel = proposalService.getCurrentModel();
+    const currentModel = proposalOrchestrator.getCurrentModel();
     console.log(`🤖 Current Model: ${currentModel}\n`);
 
     // Create test discovery data
@@ -46,7 +46,7 @@ async function testConfigurationDrivenSystem() {
     console.log('🚀 Generating proposal with configuration-driven system...\n');
     const startTime = Date.now();
 
-    const proposal = await proposalService.generateProposal(discoveryData);
+    const proposal = await proposalOrchestrator.generateProposal(discoveryData);
 
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000;
@@ -136,10 +136,10 @@ async function testConfigValidation() {
   console.log('========================================\n');
 
   try {
-    const proposalService = new ProposalService();
+    const proposalOrchestrator = new ProposalOrchestrator();
 
     // Test validation with current config (V2 only)
-    const configStatus = proposalService.getConfigurationStatus();
+    const configStatus = proposalOrchestrator.getConfigurationStatus();
     console.log('Current configuration status:', configStatus);
 
     console.log('\n✅ Configuration validation test passed');

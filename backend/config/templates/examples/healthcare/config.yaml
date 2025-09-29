@@ -1,0 +1,195 @@
+# Healthcare Industry Template Configuration
+template:
+  id: "healthcare"
+  name: "Healthcare Solution Summary"
+  description: "HIPAA-compliant proposal template for healthcare organizations"
+  file: "template.pptx"
+
+  # Template selection criteria
+  industries: ["Healthcare"]
+  project_types: ["all"]
+
+  # Global placeholders
+  global_mappings:
+    COMPANY_NAME: "discoveryData.companyName"
+    PROJECT_TYPE: "discoveryData.projectType"
+    DATE: "generated"
+    INDUSTRY: "Healthcare"
+    COMPLIANCE_FRAMEWORK: "HIPAA/HITECH"
+
+version: "1.0"
+metadata:
+  author: "Presidio Healthcare Practice"
+  description: "Healthcare-specific proposal template with compliance focus"
+  created: "2024-11-27"
+
+# Global settings
+defaults:
+  model: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  max_tokens: 2000
+  temperature: 0.6  # Lower temperature for compliance accuracy
+
+# Healthcare-specific compliance
+compliance:
+  risky_terms:
+    - "guarantee patient outcomes"
+    - "ensure HIPAA compliance"
+    - "eliminate all risks"
+    - "100% secure"
+    - "prevent all breaches"
+  required_terms:
+    - "HIPAA-compliant"
+    - "patient data protection"
+    - "PHI safeguards"
+    - "BAA requirements"
+  qualifying_terms:
+    - "designed to support compliance"
+    - "aligned with HIPAA requirements"
+    - "intended to protect PHI"
+
+# Healthcare-specific slides
+slides:
+  - id: "compliance_overview"
+    enabled: true
+    order: 1
+    title: "Compliance & Security Framework"
+    placeholder_mapping:
+      content: "COMPLIANCE_CONTENT"
+      title: "COMPLIANCE_TITLE"
+
+    prompt:
+      template: |
+        You are a senior healthcare solution architect at Presidio with deep HIPAA expertise.
+
+        Client: {{companyName}} (Healthcare Provider)
+        Challenge: {{businessChallenge}}
+        Current Systems: {{techStack}}
+
+        Generate a Compliance & Security Framework slide focusing on:
+        • HIPAA Technical Safeguards implementation
+        • PHI encryption at rest and in transit
+        • Access control and audit logging requirements
+        • Business Associate Agreement (BAA) considerations
+        • Breach notification procedures
+        • HITECH Act alignment
+
+        CRITICAL HEALTHCARE REQUIREMENTS:
+        - Reference specific HIPAA rules (e.g., §164.308, §164.312)
+        - Include patient data protection measures
+        - Address interoperability standards (HL7, FHIR)
+        - Consider EHR/EMR integration requirements
+
+        Format: {{maxBullets}} bullets, {{maxWordsPerBullet}} words each
+        Use qualifying language: "designed to meet", "aligned with", "supports"
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 15
+
+    validation:
+      required_keywords: ["HIPAA", "PHI", "compliance"]
+      min_word_count: 100
+      max_word_count: 250
+
+  - id: "clinical_integration"
+    enabled: true
+    order: 2
+    title: "Clinical Systems Integration"
+    placeholder_mapping:
+      content: "CLINICAL_CONTENT"
+
+    prompt:
+      template: |
+        Healthcare-specific integration approach for {{companyName}}:
+
+        Focus on:
+        • EHR/EMR system integration (Epic, Cerner, etc.)
+        • HL7/FHIR data exchange standards
+        • Medical device connectivity
+        • Clinical workflow optimization
+        • Physician and nursing staff adoption
+
+        Current environment: {{techStack}}
+
+        REQUIREMENTS:
+        - Address clinical workflow impact
+        - Include interoperability considerations
+        - Focus on patient care improvements
+        - Consider meaningful use requirements
+
+        Format: {{maxBullets}} concise bullets
+
+      variables:
+        maxBullets: 6
+        maxWordsPerBullet: 12
+
+  - id: "patient_outcomes"
+    enabled: true
+    order: 5
+    title: "Expected Patient & Operational Outcomes"
+    placeholder_mapping:
+      content: "PATIENT_OUTCOMES_CONTENT"
+
+    prompt:
+      template: |
+        Generate healthcare-specific outcomes for {{companyName}}:
+
+        Focus areas:
+        • Patient care quality improvements
+        • Clinical efficiency gains
+        • Reduced medical errors
+        • Improved care coordination
+        • Population health management
+        • Regulatory compliance achievements
+        • ROI through reduced readmissions
+
+        IMPORTANT: Use metrics relevant to healthcare:
+        - Patient satisfaction scores
+        - Clinical quality measures
+        - Readmission rates
+        - Care coordination metrics
+        - Compliance audit results
+
+        Avoid guaranteeing clinical outcomes.
+        Use: "designed to improve", "expected to enhance"
+
+        Format: {{maxBullets}} measurable outcomes
+
+      variables:
+        maxBullets: 5
+        maxWordsPerBullet: 15
+
+    validation:
+      should_contain_numbers: true
+      min_word_count: 100
+      max_word_count: 250
+
+# Additional healthcare-specific configurations
+healthcare_context:
+  regulations:
+    - "HIPAA Privacy Rule"
+    - "HIPAA Security Rule"
+    - "HITECH Act"
+    - "21st Century Cures Act"
+    - "CMS Interoperability Rules"
+
+  standards:
+    - "HL7 FHIR R4"
+    - "ICD-10"
+    - "CPT Codes"
+    - "DICOM for imaging"
+    - "NCPDP for pharmacy"
+
+  common_systems:
+    - "Epic"
+    - "Cerner"
+    - "Allscripts"
+    - "athenahealth"
+    - "NextGen"
+
+  key_metrics:
+    - "HCAHPS scores"
+    - "Core measures"
+    - "MIPS performance"
+    - "Readmission rates"
+    - "Length of stay"
