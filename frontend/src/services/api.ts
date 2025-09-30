@@ -95,7 +95,6 @@ export class ProposalApi {
           if (data) {
             try {
               const parsed = JSON.parse(data);
-              lastEventData = parsed;
 
               if (eventType === 'slide' && onProgress) {
                 onProgress({
