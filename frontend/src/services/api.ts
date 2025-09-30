@@ -75,8 +75,6 @@ export class ProposalApi {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_BASE_URL}/proposals/generate-stream`);
 
-      let lastEventData: any = null;
-
       xhr.onprogress = function() {
         const messages = xhr.responseText.split('\n\n');
         for (const message of messages) {

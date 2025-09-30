@@ -46,6 +46,8 @@ export class SlideGeneratorService {
 
     for (let i = 0; i < slides.length; i++) {
       const slideConfig = slides[i];
+      if (!slideConfig) continue;
+
       try {
         console.log(`📝 Generating slide ${i + 1}/${totalSlides}: ${slideConfig.title}`);
 
