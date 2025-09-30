@@ -2,6 +2,15 @@
 
 # Presidio Solution Proposal Generator - Application Startup Script
 # This script kills any existing processes and starts both frontend and backend services
+#
+# Usage: ./start_app.sh [OPTIONS]
+# Options:
+#   --logs           Show both backend and frontend logs on screen
+#   --backend-logs   Show only backend logs on screen
+#   --frontend-logs  Show only frontend logs on screen
+#   --help, -h       Show help message
+#
+# By default, logs are only written to files in the logs/ directory.
 
 set -e  # Exit on any error
 
@@ -286,9 +295,55 @@ wait_for_service() {
     return 1
 }
 
+# Parse command line arguments
+SHOW_BACKEND_LOGS=false
+SHOW_FRONTEND_LOGS=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --logs)
+            SHOW_BACKEND_LOGS=true
+            SHOW_FRONTEND_LOGS=true
+            shift
+            ;;
+        --backend-logs)
+            SHOW_BACKEND_LOGS=true
+            shift
+            ;;
+        --frontend-logs)
+            SHOW_FRONTEND_LOGS=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --logs           Show both backend and frontend logs on screen"
+            echo "  --backend-logs   Show only backend logs on screen"
+            echo "  --frontend-logs  Show only frontend logs on screen"
+            echo "  --help, -h       Show this help message"
+            echo ""
+            echo "By default, logs are only written to files in the logs/ directory."
+            echo "Use the options above to also display logs on screen in real-time."
+            exit 0
+            ;;
+        *)
+            print_error "Unknown option: $1"
+            print_error "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 # Main execution starts here
 print_status "Starting Presidio Solution Proposal Generator..."
 print_status "=========================================="
+
+if [ "$SHOW_BACKEND_LOGS" = true ] || [ "$SHOW_FRONTEND_LOGS" = true ]; then
+    print_status "Log display options:"
+    [ "$SHOW_BACKEND_LOGS" = true ] && print_status "  ✓ Backend logs will be shown on screen"
+    [ "$SHOW_FRONTEND_LOGS" = true ] && print_status "  ✓ Frontend logs will be shown on screen"
+fi
 
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -326,8 +381,17 @@ print_status "Starting services..."
 # Start backend service
 print_status "Starting backend service on port 3001..."
 cd "$BACKEND_DIR"
-nohup npm run dev > "$LOG_DIR/backend.log" 2>&1 &
-BACKEND_PID=$!
+if [ "$SHOW_BACKEND_LOGS" = true ]; then
+    print_status "Backend logs will be displayed below:"
+    print_status "====================================="
+    # Use tee to write to both file and screen
+    npm run dev 2>&1 | tee "$LOG_DIR/backend.log" &
+    BACKEND_PID=$!
+else
+    # Standard background mode - logs only to file
+    nohup npm run dev > "$LOG_DIR/backend.log" 2>&1 &
+    BACKEND_PID=$!
+fi
 cd - > /dev/null
 
 # Give backend a moment to start
@@ -343,8 +407,17 @@ fi
 # Start frontend service
 print_status "Starting frontend service on port 3000..."
 cd "$FRONTEND_DIR"
-nohup npm start > "$LOG_DIR/frontend.log" 2>&1 &
-FRONTEND_PID=$!
+if [ "$SHOW_FRONTEND_LOGS" = true ]; then
+    print_status "Frontend logs will be displayed below:"
+    print_status "======================================"
+    # Use tee to write to both file and screen
+    npm start 2>&1 | tee "$LOG_DIR/frontend.log" &
+    FRONTEND_PID=$!
+else
+    # Standard background mode - logs only to file
+    nohup npm start > "$LOG_DIR/frontend.log" 2>&1 &
+    FRONTEND_PID=$!
+fi
 cd - > /dev/null
 
 # Store PIDs for reference
@@ -377,12 +450,46 @@ if [ $BACKEND_READY -eq 0 ] && [ $FRONTEND_READY -eq 0 ]; then
     print_status "  Backend PID:  $BACKEND_PID"
     print_status "  Frontend PID: $FRONTEND_PID"
     print_status ""
-    print_status "Logs are available in:"
-    print_status "  Backend:  $LOG_DIR/backend.log"
-    print_status "  Frontend: $LOG_DIR/frontend.log"
+    
+    # Display logging information
+    if [ "$SHOW_BACKEND_LOGS" = true ] || [ "$SHOW_FRONTEND_LOGS" = true ]; then
+        print_status "📊 Logs are being displayed above and saved to:"
+        [ "$SHOW_BACKEND_LOGS" = true ] && print_status "  Backend:  $LOG_DIR/backend.log"
+        [ "$SHOW_FRONTEND_LOGS" = true ] && print_status "  Frontend: $LOG_DIR/frontend.log"
+        print_status ""
+        print_warning "📝 Note: Logs will continue to stream in this terminal."
+        print_status "Press Ctrl+C to stop log streaming (services will keep running)"
+        print_status "Use './stop_app.sh' to completely stop all services"
+    else
+        print_status "📁 Logs are being written to:"
+        print_status "  Backend:  $LOG_DIR/backend.log"
+        print_status "  Frontend: $LOG_DIR/frontend.log"
+        print_status ""
+        print_status "💡 To view logs in real-time, run:"
+        print_status "  ./start_app.sh --logs          (show both)"
+        print_status "  ./start_app.sh --backend-logs  (backend only)"
+        print_status "  ./start_app.sh --frontend-logs (frontend only)"
+        print_status ""
+        print_status "📖 To follow logs manually:"
+        print_status "  tail -f $LOG_DIR/backend.log"
+        print_status "  tail -f $LOG_DIR/frontend.log"
+    fi
+    
     print_status ""
     print_status "To stop the application, run: ./stop_app.sh"
     print_status "Or manually kill processes: kill $BACKEND_PID $FRONTEND_PID"
+    
+    # If we're showing logs, set up signal handling and keep the script running
+    if [ "$SHOW_BACKEND_LOGS" = true ] || [ "$SHOW_FRONTEND_LOGS" = true ]; then
+        # Set up signal handler for graceful exit
+        trap 'print_status "\n📋 Log streaming stopped. Services are still running."; print_status "Use ./stop_app.sh to stop all services."; exit 0' INT TERM
+        
+        print_status ""
+        print_status "⏳ Streaming logs... (Press Ctrl+C to stop log display)"
+        
+        # Keep the script running to continue showing logs
+        wait
+    fi
 else
     print_error "Failed to start one or more services"
     print_status "Cleaning up..."

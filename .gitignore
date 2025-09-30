@@ -67,3 +67,6 @@ backend/generated/*
 # Log files but keep folder structure
 logs/*
 !logs/.gitkeep
+
+# Profile directories
+Profile 2
