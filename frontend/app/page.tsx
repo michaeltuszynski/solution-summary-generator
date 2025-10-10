@@ -1,16 +1,14 @@
-import React from 'react';
-import ProposalGenerator from './components/ProposalGenerator';
-import './App.css';
+import ProposalGenerator from '@/components/ProposalGenerator'
 
-const App: React.FC = () => {
+export default function Home() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--light-gray)' }}>
       {/* Header */}
       <header className="app-header">
         <div className="container">
-          <h1 
+          <h1
             className="app-title text-center"
-            style={{ 
+            style={{
               fontFamily: 'var(--font-heading)',
               fontWeight: 'var(--weight-bold)',
               color: 'var(--primary-blue)',
@@ -27,7 +25,5 @@ const App: React.FC = () => {
         <ProposalGenerator />
       </main>
     </div>
-  );
-};
-
-export default App;
+  )
+}

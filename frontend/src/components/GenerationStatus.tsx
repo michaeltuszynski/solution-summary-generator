@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react';
 import { GenerationStatus as GenerationStatusType } from '../types';
 import { Progress } from './ui/progress';

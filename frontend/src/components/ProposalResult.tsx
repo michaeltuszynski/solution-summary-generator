@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react';
 import { Proposal, ProposalSection } from '../types';
 import { Button } from './ui/button';

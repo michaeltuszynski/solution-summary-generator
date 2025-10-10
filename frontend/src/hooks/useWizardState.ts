@@ -1,3 +1,6 @@
+'use client'
+
+
 import { useContext } from 'react';
 import { WizardContext, WizardContextType } from '../contexts/WizardContext';
 

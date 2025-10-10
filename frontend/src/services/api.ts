@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { DiscoveryData, GenerationResponse, TemplatesResponse } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Configure axios instance
 const apiClient = axios.create({

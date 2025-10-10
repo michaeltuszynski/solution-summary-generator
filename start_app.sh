@@ -411,11 +411,11 @@ if [ "$SHOW_FRONTEND_LOGS" = true ]; then
     print_status "Frontend logs will be displayed below:"
     print_status "======================================"
     # Use tee to write to both file and screen
-    npm start 2>&1 | tee "$LOG_DIR/frontend.log" &
+    npm run dev 2>&1 | tee "$LOG_DIR/frontend.log" &
     FRONTEND_PID=$!
 else
     # Standard background mode - logs only to file
-    nohup npm start > "$LOG_DIR/frontend.log" 2>&1 &
+    nohup npm run dev > "$LOG_DIR/frontend.log" 2>&1 &
     FRONTEND_PID=$!
 fi
 cd - > /dev/null
